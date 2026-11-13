@@ -5,3 +5,4 @@ __pycache__/
 .pytest_cache/
 .hypothesis/
 # NOTE: never ignore .kiro/ (Kiroween rule: may disqualify)
+site/

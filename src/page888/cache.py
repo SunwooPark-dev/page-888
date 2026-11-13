@@ -13,8 +13,9 @@ from pathlib import Path
 from typing import Callable
 
 from .config import Config, valid_area
+from .fetch import FetchError
 from .models import DataStatus
-from .parse import parse_feed
+from .parse import FeedError, parse_feed
 
 
 def cache_path(cache_dir: Path, area: str) -> Path:
@@ -87,7 +88,7 @@ def get_data(cfg: Config, now: datetime, fetcher: Callable[[Config], bytes]) -> 
     try:
         body = fetcher(cfg)
         store_cache(cfg.cache_dir, cfg.area, body, now)  # validates before writing
-    except Exception:
+    except (FetchError, FeedError):
         if cached is None:
             raise
         body, at = cached

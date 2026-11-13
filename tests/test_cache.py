@@ -12,6 +12,7 @@ from hypothesis import given, strategies as st
 
 from page888.cache import cache_path, get_data, is_fresh, is_stale, load_cache, store_cache
 from page888.config import Config
+from page888.fetch import FetchError
 from page888.parse import FeedError
 
 NOW = datetime(2026, 11, 13, 14, 0, tzinfo=timezone.utc)
@@ -26,12 +27,25 @@ def cfg(tmp_path: Path, area: str = "CA", **kw) -> Config:
     return replace(base, **kw)
 
 
-class Boom(Exception):
-    pass
+class Boom(FetchError):
+    def __init__(self, msg="down"):
+        super().__init__(msg)
 
 
 def failing(_cfg):
     raise Boom("down")
+
+
+def test_unexpected_programming_error_is_not_swallowed(tmp_path):
+    """Only FetchError/FeedError mean 'fetch failed'; a bug must surface (R2.7)."""
+    c = cfg(tmp_path)
+    store_cache(c.cache_dir, "CA", BODY_CA, NOW - timedelta(seconds=120))
+
+    def buggy(_c):
+        raise KeyError("bug")
+
+    with pytest.raises(KeyError):
+        get_data(c, NOW, buggy)
 
 
 # ---- freshness

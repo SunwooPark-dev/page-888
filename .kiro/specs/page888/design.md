@@ -420,3 +420,11 @@ Intentionally deferred
 - `store_cache` validates with `parse_feed` (raises `FeedError`, nothing written); the entry stores the body as a UTF-8 string with ISO `fetched_at` (must be tz-aware, else the entry is treated as no cache).
 - `get_data` catches any `Exception` from the fetcher or validation to fall back (fetch.py's `FetchError` does not exist yet); with no cache for the area the original exception is re-raised. It returns `skipped=0`; the build sets the real count.
 - A fresh cache that is also older than `stale_after_s` (interval configured above stale threshold) reports `stale=True` without fetching.
+- `fetch_alerts` takes an extra injectable `clock` (for HTTP-date `Retry-After`); `backoff_ceilings` yields `max_attempts - 1` gaps (no sleep after the last attempt); it returns the raw body unparsed (cache validates) and caps bodies at 32 MiB.
+- `FetchError.status` is set only for 4xx other than 429; 429/5xx exhaustion, `Retry-After` above the cap, oversize and non-200 success statuses leave it None (exit 3, not 5).
+- `get_data` now catches only `FetchError` and `FeedError`; other exceptions (bugs, local disk errors in `store_cache`) propagate rather than being masked as a fallback.
+- `publish` rejects file names outside `[A-Za-z0-9][A-Za-z0-9._-]*`; `recover` runs inside `publish` as well as at build start; on a failed swap the previous site is renamed back.
+- `build` prints the one-line summary to stdout and errors to stderr; its notice-site path uses `DataStatus(now, False, False, 0)` and still runs `verify_site`; if the notice site fails verification the exit code is 4.
+- Stage-order test (R14.1) spies on first calls: normalise and summarise run inside `paginate`, so the order asserted is fetch, parse, order, {normalise, summarise}, render, verify, publish.
+- Docs denylist scan (R11.4) skips lines that contain a negation (`not`/`never`/`no`) because `docs/BRIEF.md` legitimately states the rule naming the forbidden term.
+- `python -m page888` needs `PYTHONPATH=src` (or an editable install) because the package is not installed in `.venv`; `.gitignore` gained `site/`.

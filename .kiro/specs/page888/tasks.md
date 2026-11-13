@@ -53,18 +53,18 @@ Test-first where practical: write the test (or property) named in the task, see 
   - [x] 10.1 Tests: `test_prop_is_fresh` (`0 <= age < interval`; future `fetched_at` never fresh), `test_prop_is_stale_monotonic` (negative age is stale), `test_prop_cache_keyed_by_area` (store for A, load for B returns None, and `get_data` never serves A's alerts for B), atomic write, invalid body not stored
   - [x] 10.2 Implement `cache.py` (file `alerts-<AREA>.json`, entry holds area) and `get_data` (fresh cache skips fetch; failed fetch falls back with `fallback=True`, stale from age only; no cache raises)
 
-- [ ] 11. Fetch with backoff (R1.3-R1.6, R1.8, R2.4-R2.8)
-  - [ ] 11.1 Tests with fake opener/sleep/rng: UA header sent, URL has `status=actual` (lowercase) and `area=`, never `status=Actual`, no nationwide URL, `test_prop_backoff_bounds` (ceilings non-decreasing, <= cap, delays in `[0, ceiling]`), `test_prop_retry_after_parse`, 429/5xx retried up to `max_attempts` (4), 404 not retried, recorded 400 fixture raises `FetchError(400)`, `Retry-After` honoured as `max(Retry-After, delay)`, `Retry-After` > cap stops retrying, network error retried, request timeout of `timeout_s` passed to the opener
-  - [ ] 11.2 Implement `fetch.py` (`urllib.request`, timeout, `backoff_ceilings`, `backoff_delays`, `parse_retry_after`)
+- [x] 11. Fetch with backoff (R1.3-R1.6, R1.8, R2.4-R2.8)
+  - [x] 11.1 Tests with fake opener/sleep/rng: UA header sent, URL has `status=actual` (lowercase) and `area=`, never `status=Actual`, no nationwide URL, `test_prop_backoff_bounds` (ceilings non-decreasing, <= cap, delays in `[0, ceiling]`), `test_prop_retry_after_parse`, 429/5xx retried up to `max_attempts` (4), 404 not retried, recorded 400 fixture raises `FetchError(400)`, `Retry-After` honoured as `max(Retry-After, delay)`, `Retry-After` > cap stops retrying, network error retried, request timeout of `timeout_s` passed to the opener
+  - [x] 11.2 Implement `fetch.py` (`urllib.request`, timeout, `backoff_ceilings`, `backoff_delays`, `parse_retry_after`)
 
-- [ ] 12. Publish (R14.2-R14.4, R2.8)
-  - [ ] 12.1 Tests (tmp dirs): `test_prop_publish_atomic_on_failure` (previous site byte-identical), stale files removed on success, root `index.html` equals page 888, `recover` after simulated crash between the two renames (site missing with `site.old` present, and both present), leftover `.site.tmp` removed
-  - [ ] 12.2 Implement `publish.py` (write sibling `.site.tmp`, verify, rename `site` to `site.old`, rename tmp to `site`, delete `site.old`, `recover` at start)
+- [x] 12. Publish (R14.2-R14.4, R2.8)
+  - [x] 12.1 Tests (tmp dirs): `test_prop_publish_atomic_on_failure` (previous site byte-identical), stale files removed on success, root `index.html` equals page 888, `recover` after simulated crash between the two renames (site missing with `site.old` present, and both present), leftover `.site.tmp` removed
+  - [x] 12.2 Implement `publish.py` (write sibling `.site.tmp`, verify, rename `site` to `site.old`, rename tmp to `site`, delete `site.old`, `recover` at start)
 
-- [ ] 13. Build orchestration and CLI (R14.1, R14.10, R10.5, R10.7, R10.8, exit codes)
-  - [ ] 13.1 Tests with fixtures and fake fetcher: end to end normal, empty, stale, fallback, fallback with every alert expired (`NO UNEXPIRED ALERTS IN LAST GOOD DATA`), no-data (exit 3, notice site published, no `NO ACTIVE ALERTS` text), 4xx with no cache (exit 5), verify failure (exit 4, previous site untouched), config error (exit 2), cache for another area not used; log line has counts and excludes the UA
-  - [ ] 13.2 Implement `build.py` and `__main__.py` (exit codes 0, 2, 3, 4, 5)
-  - [ ] 13.3 Tests: stage-order spy (fetch, parse, normalise, summarise, paginate, render, verify, publish; R14.1); stdlib-only import scan of `src/page888` against `sys.stdlib_module_names` (R14.6); no analytics, tracking or cookie strings in output (R14.7); broadcaster denylist scan (`Ceefax` and similar) of output and `docs/` (R11.4); attribution, sender and source link on alert pages (R11.2, R11.3); weather.gov link on 888 (R11.5)
+- [x] 13. Build orchestration and CLI (R14.1, R14.10, R10.5, R10.7, R10.8, exit codes)
+  - [x] 13.1 Tests with fixtures and fake fetcher: end to end normal, empty, stale, fallback, fallback with every alert expired (`NO UNEXPIRED ALERTS IN LAST GOOD DATA`), no-data (exit 3, notice site published, no `NO ACTIVE ALERTS` text), 4xx with no cache (exit 5), verify failure (exit 4, previous site untouched), config error (exit 2), cache for another area not used; log line has counts and excludes the UA
+  - [x] 13.2 Implement `build.py` and `__main__.py` (exit codes 0, 2, 3, 4, 5)
+  - [x] 13.3 Tests: stage-order spy (fetch, parse, normalise, summarise, paginate, render, verify, publish; R14.1); stdlib-only import scan of `src/page888` against `sys.stdlib_module_names` (R14.6); no analytics, tracking or cookie strings in output (R14.7); broadcaster denylist scan (`Ceefax` and similar) of output and `docs/` (R11.4); attribution, sender and source link on alert pages (R11.2, R11.3); weather.gov link on 888 (R11.5)
 
 - [ ] 14. Checkpoint: full suite and manual checks
   - [ ] 14.1 `pytest -q` and `pytest -q -k prop` pass; no test touches the network

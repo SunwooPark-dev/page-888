@@ -1,24 +1,22 @@
-"""Entry point: `python -m page888`.
-
-Only configuration is wired so far (tasks 1-3). The build pipeline (task 13)
-is not implemented yet, so a valid configuration exits 1 with a message.
-"""
+"""Entry point: `python -m page888`. Configuration comes only from environment variables."""
 from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime, timezone
 
+from .build import build
 from .config import ConfigError, load_config
+from .fetch import fetch_alerts
 
 
 def main() -> int:
     try:
-        load_config(os.environ)
+        cfg = load_config(os.environ)
     except ConfigError as exc:
         print(f"page888: configuration error: {exc}", file=sys.stderr)
         return 2
-    print("page888: build pipeline not implemented yet", file=sys.stderr)
-    return 1
+    return build(cfg, datetime.now(timezone.utc), fetch_alerts)
 
 
 if __name__ == "__main__":
