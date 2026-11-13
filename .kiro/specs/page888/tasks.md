@@ -67,16 +67,16 @@ Test-first where practical: write the test (or property) named in the task, see 
   - [x] 13.3 Tests: stage-order spy (fetch, parse, normalise, summarise, paginate, render, verify, publish; R14.1); stdlib-only import scan of `src/page888` against `sys.stdlib_module_names` (R14.6); no analytics, tracking or cookie strings in output (R14.7); broadcaster denylist scan (`Ceefax` and similar) of output and `docs/` (R11.4); attribution, sender and source link on alert pages (R11.2, R11.3); weather.gov link on 888 (R11.5)
 
 - [ ] 14. Checkpoint: full suite and manual checks
-  - [ ] 14.1 `pytest -q` and `pytest -q -k prop` pass; no test touches the network
-  - [ ] 14.2 Generate `site/` from fixtures; run `python tools/check_pages.py site --strict`; manually check with JS disabled, 200% zoom, keyboard-only, one screen reader; record results in `docs/`
-  - [ ] 14.3 Confirm largest page size below 50 KB from the build log; record the measured CSS size for the README
+  - [x] 14.1 `pytest -q` and `pytest -q -k prop` pass; no test touches the network
+  - [ ] 14.2 Generate `site/` from fixtures; run `python tools/check_pages.py site --strict`; manually check with JS disabled, 200% zoom, keyboard-only, one screen reader; record results in `docs/` (automated part recorded in `docs/CHECKS.md`; the four manual checks are UNTESTED, pending a person)
+  - [x] 14.3 Confirm largest page size below 50 KB from the build log; record the measured CSS size for the README
 
 - [ ] 15. Scheduling and hosting (R14.5, R14.7, R14.8, R2.11)
-  - [ ] 15.1 Choose a free static host (see design section 9) and add its scheduled workflow with `PAGE888_USER_AGENT` as a secret and a cron no tighter than the minimum interval (verify the host's cron limits against its current docs)
-  - [ ] 15.2 Persist the cache directory between runs (mandatory, not optional); make the deploy step run even when the build exits 3 or 5 so the notice site replaces stale content, while the job still fails visibly
-  - [ ] 15.3 Confirm no analytics, tracking, scripts or external resources in the deployed output
+  - [x] 15.1 Choose a free static host (see design section 9) and add its scheduled workflow with `PAGE888_USER_AGENT` as a secret and a cron no tighter than the minimum interval (verify the host's cron limits against its current docs) (done as `.github/workflows/pages.yml`; the User-Agent is a public project URL set in workflow `env`, by decision, not a secret; first live run still to confirm)
+  - [x] 15.2 Persist the cache directory between runs (mandatory, not optional); make the deploy step run even when the build exits 3 or 5 so the notice site replaces stale content, while the job still fails visibly (in the workflow; not yet run on GitHub)
+  - [ ] 15.3 Confirm no analytics, tracking, scripts or external resources in the deployed output (local output passes `check_pages.py --strict`; the deployed site is not yet confirmed)
 
 - [ ] 16. Documentation and cleanup (Definition of done)
-  - [ ] 16.1 README in `docs/`: setup, env vars, commands, navigation limitation (links, no typed entry), disclaimer, data attribution, accepted area codes (R1.9), the 111-alert limit and omission trade-off (R5.7), the lossy ASCII mapping (R3.6), the 24-row guarantee vs narrow-viewport reflow (R13.18)
-  - [ ] 16.2 Check docs contain no broadcaster trademarks and no invented statistics (no unsourced dates or size estimates)
-  - [ ] 16.3 Remove temporary files; confirm `site/` is not hand-edited
+  - [x] 16.1 README in `docs/`: setup, env vars, commands, navigation limitation (links, no typed entry), disclaimer, data attribution, accepted area codes (R1.9), the 111-alert limit and omission trade-off (R5.7), the lossy ASCII mapping (R3.6), the 24-row guarantee vs narrow-viewport reflow (R13.18)
+  - [x] 16.2 Check docs contain no broadcaster trademarks and no invented statistics (no unsourced dates or size estimates)
+  - [x] 16.3 Remove temporary files; confirm `site/` is not hand-edited

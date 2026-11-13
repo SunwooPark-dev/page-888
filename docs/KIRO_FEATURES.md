@@ -29,3 +29,10 @@ No specific power has been verified for this project. Categories worth checking 
 
 - Hooks run `python3 tools/check_pages.py ...` from the workspace root.
 - No figures about effectiveness are claimed here; none have been measured.
+
+## Build phase
+
+- Spec-driven task execution: the generator was implemented task by task from `.kiro/specs/page888/tasks.md` in Kiro CLI. Task 14 (partly), 15 and 16 are ticked only for what is in place locally; manual accessibility checks and the first live deploy are pending.
+- Fetch MCP server: configured in `.kiro/settings/mcp.json` (`mcp-server-fetch`, allowed hosts `docs.github.com`, `www.weather.gov`, `weather-gov.github.io`). It was used to retrieve and quote the GitHub Actions `schedule` and NWS API documentation recorded in `docs/SOURCES.md`.
+- Hooks: `.kiro/hooks/page-budget-a11y.json`, `spec-trace.json` and `no-js-guard.json` are in the repository and run `tools/check_pages.py` and spec-trace prompts as described above.
+- teletext-qa agent: defined in `.kiro/agents/teletext-qa.json`. A design review of the spec is in `docs/reviews/`. A review of the finished generator and output is pending.
