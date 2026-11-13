@@ -16,17 +16,17 @@ Test-first where practical: write the test (or property) named in the task, see 
   - [x] 3.2 Tests: `test_prop_parse_never_raises`, `test_prop_severity_total`, `test_prop_parse_time` (tz-aware or None; no offset gives None), status != `Actual` dropped (the response value is capitalised `Actual`); invalid top-level raises `FeedError`
   - [x] 3.3 Implement `parse.py` with placeholders for missing fields, `expires` fallback to `ends`, https source URL checked with `urllib.parse.urlsplit` (non-empty host, no whitespace or control characters)
 
-- [ ] 4. Text normalisation and wrapping (R3.6, R3.8, R6.2)
-  - [ ] 4.1 Tests: `test_prop_normalise_idempotent_no_control`, `test_prop_normalise_ascii_only`, `test_prop_normalise_newlines` (single newline becomes a space, two or more survive as a paragraph break), `ASCII_MAP` examples (degree sign to `DEG`), `test_prop_wrap_width_and_preserves_chars`, `test_prop_format_time_roundtrip`
-  - [ ] 4.2 Implement `text.py` (`ASCII_MAP`, `normalise_text`, `wrap`, hard-split of long words, `format_time`)
+- [x] 4. Text normalisation and wrapping (R3.6, R3.8, R6.2)
+  - [x] 4.1 Tests: `test_prop_normalise_idempotent_no_control`, `test_prop_normalise_ascii_only`, `test_prop_normalise_newlines` (single newline becomes a space, two or more survive as a paragraph break), `ASCII_MAP` examples (degree sign to `DEG`), `test_prop_wrap_width_and_preserves_chars`, `test_prop_format_time_roundtrip`
+  - [x] 4.2 Implement `text.py` (`ASCII_MAP`, `normalise_text`, `wrap`, hard-split of long words, `format_time`)
 
-- [ ] 5. Ordering (R3.7, R4)
-  - [ ] 5.1 Tests: `test_prop_order_sorted_permutation` (UTC comparison across offsets), `test_prop_order_input_invariant`, dedupe by id, expired excluded, missing expiry last in severity group
-  - [ ] 5.2 Implement `order.py`
+- [x] 5. Ordering (R3.7, R4)
+  - [x] 5.1 Tests: `test_prop_order_sorted_permutation` (UTC comparison across offsets), `test_prop_order_input_invariant`, dedupe real ids only (placeholder ids never collapsed), expired excluded, missing expiry last in severity group
+  - [x] 5.2 Implement `order.py`
 
-- [ ] 6. Summaries (R7)
-  - [ ] 6.1 Tests: `test_prop_summary_total_deterministic`, includes severity/urgency/certainty words, no text beyond fields and fixed words
-  - [ ] 6.2 Implement `summarise.py`
+- [x] 6. Summaries (R7)
+  - [x] 6.1 Tests: `test_prop_summary_total_deterministic`, includes severity/urgency/certainty words, no text beyond fields and fixed words
+  - [x] 6.2 Implement `summarise.py`
 
 - [ ] 7. Layout constants and pagination (R5, R6). Do 7.1 before any other part of this task.
   - [ ] 7.1 Define `layout.py` first: `COLS=40`, `ROWS=24`, `HEADER_ROWS=1`, `BODY_ROWS=13`, `STATUS_ROWS=5`, `NAV_ROWS=3`, `FOOTER_ROWS=2`, with an import-time assert that they sum to 24. Tests: constants sum to `ROWS`; worst-case status text (`DATA AS OF` line, `STALE DATA - CHECK WEATHER.GOV`, `LIVE UPDATE FAILED - SHOWING LAST GOOD DATA` wrapped, skipped line) wraps to at most `STATUS_ROWS`; footer and nav worst-case text fit their rows at 40 columns (R6.10)

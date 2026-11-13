@@ -295,7 +295,7 @@ Each is a hypothesis property named `test_prop_*`; ids trace to requirements.
 | P3 | `parse_severity` maps any input into `Severity`; unknown maps to UNKNOWN. | R3.3 |
 | P4 | `parse_time` returns a tz-aware datetime or None, never raises; no offset gives None. | R3.4 |
 | P5 | `normalise_text` is idempotent; output has no control characters; output is printable ASCII plus paragraph-break newlines; no lone single newline survives (collapsed to a space); two or more newlines survive as a paragraph break. | R3.6 |
-| P6 | Dedupe by id: output ids unique, subset of input ids. | R3.7 |
+| P6 | Dedupe by real id: output real ids unique, subset of input ids; placeholder-id (`NOT STATED`) alerts are never collapsed. | R3.7 |
 | P7 | `order_alerts` output is a permutation of its non-expired input, sorted by (severity, expiry-or-inf in UTC, id), invariant under input shuffling. | R4.1-R4.4 |
 | P8 | `assign_numbers(n)` yields distinct, ascending 3-digit numbers starting at 889, at most 111, with overflow = n - shown. The page order produced by `build_site_model` follows the P7 order (alert at number 889+i is the i-th of `order_alerts`). | R5.2, R5.5, R5.7, R4.1 |
 | P9 | `filename(number, k)` matches `^\d{3}(-\d+)?\.html$`, k=1 has no suffix, is injective. | R5.3, R5.4 |

@@ -51,7 +51,7 @@ Definitions:
 4. WHEN a timestamp is unparseable, THE SYSTEM SHALL treat it as absent. **[PBT]**
 5. WHEN a feature is not an object or has no `properties`, THE SYSTEM SHALL skip it and count it as skipped; the build continues.
 6. THE SYSTEM SHALL normalise text: strip control characters, collapse NWS hard-wrapped single newlines into spaces while keeping paragraph breaks (two or more consecutive newlines), and map every non-ASCII character to ASCII using the explicit `ASCII_MAP` table in `text.py` (for example the degree sign to `DEG`, en/em dash to `-`, curly quotes to straight quotes, ellipsis to `...`, non-breaking space to a space), then NFKD-decompose and drop combining marks for letters not in the table, and finally replace any remaining character with `?`. The mapping is lossy by design and is documented. **[PBT]** (output has no control characters; idempotent; output is printable ASCII plus paragraph-break newlines; no single newline survives)
-7. IF two alerts share an id, THEN THE SYSTEM SHALL keep one. **[PBT]**
+7. IF two alerts share a real id, THEN THE SYSTEM SHALL keep one. Alerts whose id is the missing-id placeholder (`NOT STATED`) are distinct alerts and SHALL NOT be collapsed together. **[PBT]**
 8. THE SYSTEM SHALL keep onset and expires as timezone-aware values with the offset given by the source, and SHALL display them as `YYYY-MM-DD HH:MM +HH:MM` followed on the next row by the same instant in UTC (`= YYYY-MM-DD HH:MM UTC`), so a reader sees both the local time at the source and UTC. WHEN the source has no offset, THE SYSTEM SHALL treat the timestamp as unparseable (R3.4). **[PBT]** (display round-trips to the same instant)
 
 ## R4. Severity ordering
