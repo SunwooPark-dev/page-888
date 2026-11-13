@@ -1,0 +1,91 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "id": null,
+   "type": "Feature",
+   "properties": {
+    "id": null,
+    "status": "Actual",
+    "severity": null,
+    "event": null,
+    "description": null,
+    "instruction": null,
+    "headline": null,
+    "areaDesc": null,
+    "senderName": null,
+    "onset": null,
+    "expires": null,
+    "urgency": null,
+    "certainty": null
+   }
+  },
+  {
+   "id": 12,
+   "type": "Feature",
+   "properties": {
+    "id": 42,
+    "status": "Actual",
+    "severity": 7,
+    "event": [
+     "x"
+    ],
+    "description": {
+     "a": 1
+    },
+    "instruction": 12.5,
+    "headline": true,
+    "areaDesc": 3,
+    "senderName": [],
+    "onset": 20260101,
+    "expires": "not a time",
+    "urgency": false,
+    "certainty": {}
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "status": "Actual",
+    "expires": "2026-11-13T18:00:00"
+   }
+  },
+  {
+   "type": "Feature"
+  },
+  {
+   "type": "Feature",
+   "properties": null
+  },
+  {
+   "type": "Feature",
+   "properties": "oops"
+  },
+  "not an object",
+  7,
+  null,
+  [],
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:test.9",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "id": "urn:oid:test.9",
+    "areaDesc": "Test County; Other County",
+    "sent": "2026-11-13T10:00:00-05:00",
+    "onset": "2026-11-13T10:00:00-05:00",
+    "expires": "2026-11-13T18:00:00-05:00",
+    "ends": null,
+    "status": "Actual",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Warning",
+    "senderName": "NWS Testville XX",
+    "headline": "Flood Warning issued November 13 at 10:00AM EST by NWS Testville",
+    "description": "The river is rising.\nExpect flooding of low-lying roads.\n\nStay away from the water.",
+    "instruction": "Turn around, don't drown."
+   }
+  }
+ ]
+}

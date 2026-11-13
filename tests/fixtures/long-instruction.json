@@ -1,0 +1,28 @@
+{
+ "type": "FeatureCollection",
+ "title": "current watches, warnings, and advisories",
+ "features": [
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:test.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "id": "urn:oid:test.1",
+    "areaDesc": "Test County; Other County",
+    "sent": "2026-11-13T10:00:00-05:00",
+    "onset": "2026-11-13T10:00:00-05:00",
+    "expires": "2026-11-13T18:00:00-05:00",
+    "ends": null,
+    "status": "Actual",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Warning",
+    "senderName": "NWS Testville XX",
+    "headline": "Flood Warning issued November 13 at 10:00AM EST by NWS Testville",
+    "description": "Short description.",
+    "instruction": "Step 1: move to higher ground and avoid walking or driving through flood waters. Step 2: move to higher ground and avoid walking or driving through flood waters. Step 3: move to higher ground and avoid walking or driving through flood waters. Step 4: move to higher ground and avoid walking or driving through flood waters. Step 5: move to higher ground and avoid walking or driving through flood waters. Step 6: move to higher ground and avoid walking or driving through flood waters. Step 7: move to higher ground and avoid walking or driving through flood waters. Step 8: move to higher ground and avoid walking or driving through flood waters. Step 9: move to higher ground and avoid walking or driving through flood waters. Step 10: move to higher ground and avoid walking or driving through flood waters. Step 11: move to higher ground and avoid walking or driving through flood waters. Step 12: move to higher ground and avoid walking or driving through flood waters. Step 13: move to higher ground and avoid walking or driving through flood waters. Step 14: move to higher ground and avoid walking or driving through flood waters. Step 15: move to higher ground and avoid walking or driving through flood waters. Step 16: move to higher ground and avoid walking or driving through flood waters. Step 17: move to higher ground and avoid walking or driving through flood waters. Step 18: move to higher ground and avoid walking or driving through flood waters. Step 19: move to higher ground and avoid walking or driving through flood waters. Step 20: move to higher ground and avoid walking or driving through flood waters. Step 21: move to higher ground and avoid walking or driving through flood waters. Step 22: move to higher ground and avoid walking or driving through flood waters. Step 23: move to higher ground and avoid walking or driving through flood waters. Step 24: move to higher ground and avoid walking or driving through flood waters. Step 25: move to higher ground and avoid walking or driving through flood waters. Step 26: move to higher ground and avoid walking or driving through flood waters. Step 27: move to higher ground and avoid walking or driving through flood waters. Step 28: move to higher ground and avoid walking or driving through flood waters. Step 29: move to higher ground and avoid walking or driving through flood waters. Step 30: move to higher ground and avoid walking or driving through flood waters."
+   }
+  }
+ ]
+}

@@ -1,0 +1,72 @@
+{
+ "type": "FeatureCollection",
+ "title": "current watches, warnings, and advisories",
+ "features": [
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:test.1",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "id": "urn:oid:test.1",
+    "areaDesc": "Test County; Other County",
+    "sent": "2026-11-13T10:00:00-05:00",
+    "onset": "2026-11-13T10:00:00-05:00",
+    "expires": "2026-11-13T18:00:00-05:00",
+    "ends": null,
+    "status": "Test",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Warning",
+    "senderName": "NWS Testville XX",
+    "headline": "Flood Warning issued November 13 at 10:00AM EST by NWS Testville",
+    "description": "The river is rising.\nExpect flooding of low-lying roads.\n\nStay away from the water.",
+    "instruction": "Turn around, don't drown."
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:test.2",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "id": "urn:oid:test.2",
+    "areaDesc": "Test County; Other County",
+    "sent": "2026-11-13T10:00:00-05:00",
+    "onset": "2026-11-13T10:00:00-05:00",
+    "expires": "2026-11-13T18:00:00-05:00",
+    "ends": null,
+    "status": "Exercise",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Warning",
+    "senderName": "NWS Testville XX",
+    "headline": "Flood Warning issued November 13 at 10:00AM EST by NWS Testville",
+    "description": "The river is rising.\nExpect flooding of low-lying roads.\n\nStay away from the water.",
+    "instruction": "Turn around, don't drown."
+   }
+  },
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:test.3",
+   "type": "Feature",
+   "geometry": null,
+   "properties": {
+    "id": "urn:oid:test.3",
+    "areaDesc": "Test County; Other County",
+    "sent": "2026-11-13T10:00:00-05:00",
+    "onset": "2026-11-13T10:00:00-05:00",
+    "expires": "2026-11-13T18:00:00-05:00",
+    "ends": null,
+    "status": "Actual",
+    "severity": "Severe",
+    "certainty": "Likely",
+    "urgency": "Expected",
+    "event": "Flood Warning",
+    "senderName": "NWS Testville XX",
+    "headline": "Flood Warning issued November 13 at 10:00AM EST by NWS Testville",
+    "description": "The river is rising.\nExpect flooding of low-lying roads.\n\nStay away from the water.",
+    "instruction": "Turn around, don't drown."
+   }
+  }
+ ]
+}

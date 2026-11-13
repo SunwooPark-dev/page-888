@@ -2,19 +2,19 @@
 
 Test-first where practical: write the test (or property) named in the task, see it fail, then implement. Each task ends with `pytest -q` passing.
 
-- [ ] 1. Project scaffold (R14.6, R14.9)
-  - [ ] 1.1 Create `src/page888/__init__.py`, `__main__.py`, `pyproject.toml` (no runtime deps; dev extras pytest, hypothesis), `.gitignore` (`.cache/`, `.venv/`, `site/` unless host needs it)
-  - [ ] 1.2 `tests/conftest.py` blocking network (socket connect guard) and shared hypothesis settings
-  - [ ] 1.3 Add fixtures in `tests/fixtures/`: normal, long-instruction, nulls/wrong types, Test status, hostile text, empty, many alerts (more than 111), a recorded HTTP 400 body for `status=Actual`
+- [x] 1. Project scaffold (R14.6, R14.9)
+  - [x] 1.1 Create `src/page888/__init__.py`, `__main__.py`, `pyproject.toml` (no runtime deps; dev extras pytest, hypothesis), `.gitignore` (`.cache/`, `.venv/`, `site/` unless host needs it)
+  - [x] 1.2 `tests/conftest.py` blocking network (socket connect guard) and shared hypothesis settings
+  - [x] 1.3 Add fixtures in `tests/fixtures/`: normal, long-instruction, nulls/wrong types, Test status, hostile text, empty, many alerts (more than 111), a recorded HTTP 400 body for `status=Actual`
 
-- [ ] 2. Config (R1.1-R1.3, R1.5, R2.3, R2.12)
-  - [ ] 2.1 Tests: UA unset/blank raises `ConfigError`; `test_prop_valid_area` (exactly `^[A-Z]{2}$`); interval clamped to >= 30 s; defaults `max_attempts` 4, `base_delay_s` 2.0, `max_delay_s` 60.0, `timeout_s` 20.0
-  - [ ] 2.2 Implement `config.py` (`Config`, `load_config`, `valid_area`; env vars `PAGE888_USER_AGENT`, `PAGE888_AREA`, `PAGE888_OUT`, interval/stale settings)
+- [x] 2. Config (R1.1-R1.3, R1.5, R2.3, R2.12)
+  - [x] 2.1 Tests: UA unset/blank raises `ConfigError`; `test_prop_valid_area` (exactly `^[A-Z]{2}$`); interval clamped to >= 30 s; defaults `max_attempts` 4, `base_delay_s` 2.0, `max_delay_s` 60.0, `timeout_s` 20.0
+  - [x] 2.2 Implement `config.py` (`Config`, `load_config`, `valid_area`; env vars `PAGE888_USER_AGENT`, `PAGE888_AREA`, `PAGE888_OUT`, interval/stale settings)
 
-- [ ] 3. Data models and parsing (R1.7, R3)
-  - [ ] 3.1 Define `Severity`, `Alert`, `Row`, `SubPage`, `Page`, `DataStatus` in `models.py` (tz-aware times)
-  - [ ] 3.2 Tests: `test_prop_parse_never_raises`, `test_prop_severity_total`, `test_prop_parse_time` (tz-aware or None; no offset gives None), status != `Actual` dropped (the response value is capitalised `Actual`); invalid top-level raises `FeedError`
-  - [ ] 3.3 Implement `parse.py` with placeholders for missing fields, `expires` fallback to `ends`, https source URL checked with `urllib.parse.urlsplit` (non-empty host, no whitespace or control characters)
+- [x] 3. Data models and parsing (R1.7, R3)
+  - [x] 3.1 Define `Severity`, `Alert`, `Row`, `SubPage`, `Page`, `DataStatus` in `models.py` (tz-aware times)
+  - [x] 3.2 Tests: `test_prop_parse_never_raises`, `test_prop_severity_total`, `test_prop_parse_time` (tz-aware or None; no offset gives None), status != `Actual` dropped (the response value is capitalised `Actual`); invalid top-level raises `FeedError`
+  - [x] 3.3 Implement `parse.py` with placeholders for missing fields, `expires` fallback to `ends`, https source URL checked with `urllib.parse.urlsplit` (non-empty host, no whitespace or control characters)
 
 - [ ] 4. Text normalisation and wrapping (R3.6, R3.8, R6.2)
   - [ ] 4.1 Tests: `test_prop_normalise_idempotent_no_control`, `test_prop_normalise_ascii_only`, `test_prop_normalise_newlines` (single newline becomes a space, two or more survive as a paragraph break), `ASCII_MAP` examples (degree sign to `DEG`), `test_prop_wrap_width_and_preserves_chars`, `test_prop_format_time_roundtrip`
