@@ -81,8 +81,9 @@ def test_empty_feed_says_no_active_alerts(tmp_path, fixture_bytes):
 def test_test_status_alerts_are_dropped(tmp_path, fixture_bytes):
     code, site = run(tmp_path, serving(fixture_bytes("test-status.json")))
     assert code == 0
-    assert len(list(site.glob("889*.html"))) == 1 or "889-2.html" in {p.name for p in site.iterdir()}
-    assert "890.html" not in {p.name for p in site.iterdir()}  # only the one Actual alert has a page
+    names = {p.name for p in site.iterdir()}
+    assert "889.html" in names  # the one Actual alert has a page
+    assert not any(n.startswith("890") for n in names)  # the Test alert has none
 
 
 def test_many_alerts_overflow_line(tmp_path, fixture_bytes):
@@ -247,6 +248,25 @@ def test_no_hardcoded_user_agent_in_src():
         assert "SunwooPark" not in s and "github.com" not in s and "Page888 (" not in s
 
 
+def test_no_hardcoded_personal_handle_in_workflows():
+    files = [p for p in (ROOT / ".github").rglob("*") if p.is_file()]
+    assert files
+    for path in files:
+        s = path.read_text(encoding="utf-8")
+        assert "SunwooPark" not in s, path
+        assert not re.search(r"Page888 \(https?://github\.com/", s), path
+    wf = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+    assert re.search(r"PAGE888_USER_AGENT:.*\$\{\{ github\.server_url \}\}/\$\{\{ github\.repository \}\}", wf)
+
+
+def test_scheduled_runs_skip_the_pytest_step():
+    wf = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+    step = re.search(r"- name: Run tests\n(.*?)\n\n", wf, re.S)
+    assert step, "Run tests step not found"
+    assert "if: github.event_name != 'schedule'" in step.group(1)
+    assert "pytest -q" in step.group(1)
+
+
 def test_no_tracking_strings_in_output(tmp_path, fixture_bytes):
     _, site = run(tmp_path, serving(fixture_bytes("normal.json")))
     t = text_of(site).lower()
@@ -254,22 +274,109 @@ def test_no_tracking_strings_in_output(tmp_path, fixture_bytes):
         assert word not in t
 
 
-def test_no_broadcaster_names_in_output_or_docs(tmp_path, fixture_bytes):
+_BROADCASTER = re.compile(r"ceefax|oracle teletext|prestel", re.I)
+_NEGATED_RULE = re.compile(r"\b(no|not|never|avoid|without|forbid\w*)\b.{0,60}?(ceefax|oracle teletext|prestel)", re.I)
+# Files that state the rule itself may name the term, but only inside a negated rule line.
+_RULE_FILES = ["docs/BRIEF.md", "docs/reviews/*.md", ".kiro/steering/*.md", ".kiro/specs/page888/*.md",
+               ".kiro/agents/*.json"]
+
+
+def _files(patterns):
+    out = []
+    for pat in patterns:
+        out += [p for p in ROOT.glob(pat) if p.is_file()]
+    return out
+
+
+def test_no_broadcaster_names_in_output_src_or_docs(tmp_path, fixture_bytes):
     _, site = run(tmp_path, serving(fixture_bytes("normal.json")))
-    blobs = [text_of(site).replace(" ", "\n")]
-    blobs += [p.read_text(encoding="utf-8").lower() for p in (ROOT / "docs").glob("*.md")]
-    for blob in blobs:
-        for line in blob.lower().splitlines():
-            if re.search(r"\b(not|never|no)\b", line):
-                continue  # a rule that forbids the name is not a use of it
-            for word in ("ceefax", "oracle teletext", "prestel"):
-                assert word not in line
+    strict = [text_of(site)]
+    strict_files = _files(["README.md", "docs/*.md", "src/page888/*.py", "tools/*.py"])
+    rule_files = set(_files(_RULE_FILES))
+    for path in strict_files:
+        if path not in rule_files:
+            strict.append(path.read_text(encoding="utf-8"))
+    for blob in strict:
+        assert not _BROADCASTER.search(blob)
+    for path in rule_files:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if _BROADCASTER.search(line):
+                assert _NEGATED_RULE.search(line), f"{path.name}: {line.strip()[:80]}"
+
+
+def test_broadcaster_scan_catches_a_non_negated_line():
+    assert _BROADCASTER.search("Ceefax-style, no JavaScript")
+    assert not _NEGATED_RULE.search("Ceefax-style, no JavaScript")
+    assert _NEGATED_RULE.search("Do not use the name Ceefax")
 
 
 def test_attribution_sender_and_source_on_alert_pages_and_weather_gov_on_index(tmp_path, fixture_bytes):
     _, site = run(tmp_path, serving(fixture_bytes("normal.json")))
-    alert_page = (site / "889.html").read_text(encoding="utf-8")
-    assert "NOT AN OFFICIAL WARNING CHANNEL" in alert_page
-    assert "NWS" in alert_page.upper() or "NATIONAL WEATHER SERVICE" in alert_page.upper()
-    assert "https://api.weather.gov/alerts/" in alert_page or "SOURCE" in alert_page
+    pages = [p.read_text(encoding="utf-8") for p in sorted(site.glob("889*.html"))]
+    assert all("NOT AN OFFICIAL WARNING CHANNEL" in x for x in pages)
+    assert "SENDER NWS" in " ".join(re.sub(r"<[^>]*>", " ", x) for x in pages)
+    alert_page = "\n".join(pages)
+    links = re.findall(r'<a href="(https://api\.weather\.gov/alerts/[^"]+)">', alert_page)
+    assert len(links) == 1 and links[0].endswith("urn:oid:test.2")
+    page_text = " ".join(re.sub(r"<[^>]*>", " ", re.sub(r"<style>.*?</style>", " ", alert_page, flags=re.S)).split())
+    assert re.search(r"\bID urn:oid:", page_text)
+    assert "SOURCE ALERT JSON (api.weather.gov)" in page_text
+    assert "OPENS RAW JSON" in page_text
     assert "https://www.weather.gov/" in (site / "888.html").read_text(encoding="utf-8")
+
+
+def test_test_status_fixture_only_publishes_the_actual_alert(tmp_path, fixture_bytes):
+    _, site = run(tmp_path, serving(fixture_bytes("test-status.json")))
+    t = text_of(site)
+    assert "urn:oid:test.3" in t
+    assert "urn:oid:test.1" not in t and "urn:oid:test.2" not in t
+
+
+# ---- review r1 #1, #4, #8
+
+def test_incomplete_read_on_every_attempt_falls_back_to_cache(tmp_path, fixture_bytes):
+    import http.client
+
+    store_cache(cfg(tmp_path).cache_dir, "CA", fixture_bytes("normal.json"), NOW - timedelta(minutes=5))
+
+    class Broken:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        status = 200
+
+        def read(self, n=-1):
+            raise http.client.IncompleteRead(b"x", 9)
+
+    from page888.fetch import fetch_alerts
+
+    def fetcher(c):
+        return fetch_alerts(c, opener=lambda req, timeout=None: Broken(), sleep=lambda s: None)
+
+    code, site = run(tmp_path, fetcher)
+    assert code == 0
+    assert FALLBACK_TEXT in text_of(site) and (site / "889.html").exists()
+
+
+def test_notice_site_does_not_claim_data_as_of(tmp_path):
+    code, site = run(tmp_path, failing())
+    assert code == 3
+    for page in site.glob("*.html"):
+        assert "DATA AS OF" not in page.read_text(encoding="utf-8")
+    assert "DATA AS OF" in text_of(_built(tmp_path))
+
+
+def _built(tmp_path):
+    # a normal build for the contrast: real data does carry the timestamp
+    other = tmp_path / "other"
+    other.mkdir()
+    from page888.build import build as b
+    from pathlib import Path as P
+
+    fixture = (ROOT / "tests" / "fixtures" / "normal.json").read_bytes()
+    c = replace(cfg(other), out_dir=other / "site", cache_dir=other / "cache")
+    assert b(c, NOW, lambda _c: fixture) == 0
+    return other / "site"

@@ -64,7 +64,7 @@ Test-first where practical: write the test (or property) named in the task, see 
 - [x] 13. Build orchestration and CLI (R14.1, R14.10, R10.5, R10.7, R10.8, exit codes)
   - [x] 13.1 Tests with fixtures and fake fetcher: end to end normal, empty, stale, fallback, fallback with every alert expired (`NO UNEXPIRED ALERTS IN LAST GOOD DATA`), no-data (exit 3, notice site published, no `NO ACTIVE ALERTS` text), 4xx with no cache (exit 5), verify failure (exit 4, previous site untouched), config error (exit 2), cache for another area not used; log line has counts and excludes the UA
   - [x] 13.2 Implement `build.py` and `__main__.py` (exit codes 0, 2, 3, 4, 5)
-  - [x] 13.3 Tests: stage-order spy (fetch, parse, normalise, summarise, paginate, render, verify, publish; R14.1); stdlib-only import scan of `src/page888` against `sys.stdlib_module_names` (R14.6); no analytics, tracking or cookie strings in output (R14.7); broadcaster denylist scan (`Ceefax` and similar) of output and `docs/` (R11.4); attribution, sender and source link on alert pages (R11.2, R11.3); weather.gov link on 888 (R11.5)
+  - [x] 13.3 Tests: stage-order spy (fetch, parse, normalise, summarise, paginate, render, verify, publish; R14.1); stdlib-only import scan of `src/page888` against `sys.stdlib_module_names` (R14.6); no analytics, tracking or cookie strings in output (R14.7); broadcaster denylist scan of the output, `src/`, `tools/`, `README.md` and `docs/` (R11.4; files that state the rule itself may name a term only on a line that negates it); attribution, sender and source link on alert pages (R11.2, R11.3); weather.gov link on 888 (R11.5)
 
 - [ ] 14. Checkpoint: full suite and manual checks
   - [x] 14.1 `pytest -q` and `pytest -q -k prop` pass; no test touches the network
@@ -80,3 +80,8 @@ Test-first where practical: write the test (or property) named in the task, see 
   - [x] 16.1 README in `docs/`: setup, env vars, commands, navigation limitation (links, no typed entry), disclaimer, data attribution, accepted area codes (R1.9), the 111-alert limit and omission trade-off (R5.7), the lossy ASCII mapping (R3.6), the 24-row guarantee vs narrow-viewport reflow (R13.18)
   - [x] 16.2 Check docs contain no broadcaster trademarks and no invented statistics (no unsourced dates or size estimates)
   - [x] 16.3 Remove temporary files; confirm `site/` is not hand-edited
+
+- [x] 17. Code review r1 fixes (teletext-qa, 2026-11-13; see `docs/reviews/2026-11-13-teletext-qa-code-review-r1-response.md`)
+  - [x] 17.1 Tests first, then fixes: findings 1-11 and the weak tests (R1.10, R3.9, R6.12, R10.9, R11.6, R14.12)
+  - [x] 17.2 Findings 12 and 13 deferred (URL host allow-list, index page cap); finding 14 documented in `docs/README.md`
+  - [ ] 17.3 First scheduled run on GitHub with the new workflow (User-Agent from repository context, pytest skipped on schedule) still to confirm

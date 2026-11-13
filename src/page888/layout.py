@@ -15,6 +15,7 @@ MAX_DOUBLE_HEIGHT_COLS = COLS // 2  # a double-height line fits 20 characters
 
 # Fixed texts (worst cases are checked in tests/test_layout.py).
 DATA_AS_OF = "DATA AS OF {stamp} UTC"
+NO_DATA_TEXT = "NO ALERT DATA AVAILABLE"  # status row of the notice site (no timestamp: there is no data)
 STALE_TEXT = "STALE DATA - CHECK WEATHER.GOV"
 FALLBACK_TEXT = "LIVE UPDATE FAILED - SHOWING LAST GOOD DATA"
 SKIPPED_TEXT = "SKIPPED UNREADABLE ALERTS: {n}"

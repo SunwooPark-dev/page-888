@@ -97,8 +97,9 @@ def _runs(rows: Iterable[Row], banners: bool = False) -> str:
                 out.append(f'<a href="{esc(href)}">')
             cur = href
         extra = "b-red-black" if banners and r.text in _BANNER_ROWS else ""
-        if not first:
+        if not first and not r.join:
             out.append(" ")  # keeps wrapped rows readable as running text; collapsed by CSS
+            # (rows of one unbreakable token, such as an ID, are joined with no space)
         first = False
         out.append(_row(r, "span", extra))
     if cur:
@@ -127,9 +128,8 @@ def _body(sp: SubPage) -> str:
 
     def _item(rows: list[Row]) -> str:
         head, rest = rows[0], rows[1:]
-        return _row(head, "a").replace("<a ", f'<a href="{esc(head.href)}" ', 1) + "".join(
-            _row(r) for r in rest
-        )
+        link = _row(head, "a").replace("<a ", f'<a href="{esc(head.href)}" ', 1)
+        return " ".join([link, *(_row(r) for r in rest)])  # space keeps text-mode rows apart
 
     def close_para() -> None:
         nonlocal cur
@@ -174,7 +174,7 @@ def _nav(nav: NavContext) -> str:
 
 
 def _footer(rows: Sequence[Row]) -> str:
-    return "<footer><p>" + "".join(
+    return "<footer><p>" + " ".join(
         f'<a class="row" href="{esc(safe_href(r.href))}">{esc(r.text)}</a>'
         if safe_href(r.href) else _row(r)
         for r in rows

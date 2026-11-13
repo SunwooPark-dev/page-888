@@ -5,16 +5,18 @@ and footer rows are produced here so the row counts live in one place.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import timezone
 from typing import Sequence
+from urllib.parse import urlsplit
 
 from .layout import (
     BODY_ROWS, COLS, DATA_AS_OF, DISCLAIMER, FALLBACK_TEXT, FOOTER_INDEX, FOOTER_OTHER,
-    MAX_DOUBLE_HEIGHT_COLS, SKIPPED_TEXT, STALE_TEXT, WEATHER_GOV,
+    MAX_DOUBLE_HEIGHT_COLS, NO_DATA_TEXT, SKIPPED_TEXT, STALE_TEXT, WEATHER_GOV,
 )
 from .models import Alert, DataStatus, Page, Row, SubPage
-from .parse import NOT_STATED
+from .parse import NOT_STATED, https_url_or_empty
 from .summarise import summarise
 from .text import _stamp, format_time, normalise_text, wrap
 
@@ -26,6 +28,7 @@ NO_INSTRUCTION = "NO INSTRUCTION FIELD IN SOURCE - SEE DESCRIPTION"
 NO_DESCRIPTION = "NO DESCRIPTION FIELD IN SOURCE"
 NOT_STABLE = "PAGE NUMBERS ARE NOT STABLE IDS"
 _WORST_SUFFIX = " (CONT. 999/999)"
+_CONT_SUFFIX = re.compile(r" \(CONT\. [0-9]+/[0-9]+\)$")
 
 
 # ---------------------------------------------------------------- numbering
@@ -58,6 +61,25 @@ def fit_title(base: str, suffix: str = "") -> str:
     return text
 
 
+def truncate_words(s: str, width: int) -> str:
+    """`s` if it fits, else its longest whole-word prefix plus `...` within `width` columns.
+
+    No trailing space is left before the `...`. A first word longer than the room is cut hard
+    (the only case that can split a word). Review r1 #2, #3.
+    """
+    if len(s) <= width:
+        return s
+    room = width - 3
+    if room <= 0:
+        return "..."[:max(0, width)]
+    if s[room] == " ":
+        head = s[:room]
+    else:
+        i = s.rfind(" ", 0, room)
+        head = s[:i] if i > 0 else s[:room]
+    return head.rstrip(" ") + "..."
+
+
 def _title_cost(title: str, double: bool) -> int:
     if double:
         return 2 * len(wrap(title, MAX_DOUBLE_HEIGHT_COLS))
@@ -78,6 +100,8 @@ class _Item:
     label: bool = False
     section: str = ""
     href: str = ""
+    join: bool = False
+    hold: int = 0  # this many following rows must stay on the same page
 
 
 def _text_items(section: str, text: str, href: str = "") -> list[_Item]:
@@ -107,7 +131,7 @@ def _flow(items: Sequence[_Item], cap_first: int, cap_rest: int) -> list[list[Ro
         page = pages[-1]
         fresh = not page or page[-1].label
         gap = it.gap and not fresh
-        need = 1 + gap + (1 if it.label else 0)
+        need = 1 + gap + (1 if it.label else 0) + it.hold
         if not page and not it.label and len(pages) > 1:
             lab = f"{it.section} (CONT.)"
             page.append(Row(lab, False, True))
@@ -118,7 +142,7 @@ def _flow(items: Sequence[_Item], cap_first: int, cap_rest: int) -> list[list[Ro
             used = 0
             cap = cap_rest
             continue
-        page.append(Row(it.text, gap, it.label, it.href))
+        page.append(Row(it.text, gap, it.label, it.href, it.join))
         used += 1 + gap
         i += 1
     return pages
@@ -145,6 +169,34 @@ class NavContext:
     index: NavLink | None = None
 
 
+def _token_items(section: str, label: str, token: str) -> list[_Item]:
+    """`LABEL token` rows; one unbreakable token longer than a row is chunked and the
+    continuation rows are marked `join` so no space is inserted when they are read or copied."""
+    text = f"{label} {token}"
+    if " " in token or len(text) <= COLS:
+        return [_Item(r, False, False, section) for r in wrap(text, COLS)]
+    chunks = [text[i:i + COLS] for i in range(0, len(text), COLS)]
+    return [_Item(c, False, False, section, "", i > 0, len(chunks) - 1 - i) for i, c in enumerate(chunks)]
+
+
+def _source_label(url: str) -> str:
+    """Short accessible name for the source link; the host only when it is plain and short."""
+    try:
+        host = urlsplit(url).hostname or ""
+    except ValueError:
+        host = ""
+    if host and len(host) <= 20 and re.fullmatch(r"[a-z0-9.-]+", host):
+        return f"SOURCE ALERT JSON ({host})"
+    return "SOURCE ALERT JSON"
+
+
+def _time_rows(label: str, dt) -> list[str]:
+    if dt is None:
+        return [f"{label} NOT STATED"]
+    local, utc = format_time(dt)
+    return [f"{label} {local}", utc]
+
+
 def _alert_items(a: Alert) -> list[_Item]:
     desc = normalise_text(a.description) or NO_DESCRIPTION
     instr = normalise_text(a.instruction) or NO_INSTRUCTION
@@ -152,9 +204,8 @@ def _alert_items(a: Alert) -> list[_Item]:
     if a.onset is not None:
         local, utc = format_time(a.onset)
         details += [f"ONSET {local}", utc]
-    if a.expires is not None:
-        local, utc = format_time(a.expires)
-        details += [f"EXPIRES {local}", utc]
+    details += _time_rows("MESSAGE EXPIRES", a.message_expires)  # when this message lapses
+    details += _time_rows("ENDS", a.ends)  # when the event is expected to end (can be days later)
     details.append(f"SENDER {_flat(a.sender_name) or NOT_STATED}")
     items = _section("SUMMARY", summarise(a))
     items += _section("DESCRIPTION", desc)
@@ -162,9 +213,10 @@ def _alert_items(a: Alert) -> list[_Item]:
     items += [_Item("DETAILS", True, True, "DETAILS")]
     items += [_Item(r, False, False, "DETAILS") for d in details for r in wrap(d, COLS)]
     items += [_Item("SOURCE", True, True, "SOURCE")]
-    items += [_Item(r, False, False, "SOURCE") for r in wrap(f"ID {_flat(a.id)}", COLS)]
-    if a.source_url:
-        items += [_Item(r, False, False, "SOURCE", a.source_url) for r in wrap(f"LINK {a.source_url}", COLS)]
+    items += _token_items("SOURCE", "ID", _flat(a.id) or NOT_STATED)
+    if https_url_or_empty(a.source_url):
+        items += [_Item("LINK BELOW OPENS RAW JSON DATA", False, False, "SOURCE", "", False, 1)]
+        items += [_Item(_source_label(a.source_url), False, False, "SOURCE", a.source_url)]
     items += [_Item(NOT_STABLE, False, False, "SOURCE")]
     return items
 
@@ -199,12 +251,12 @@ def _cut(s: str) -> str:
 def _index_rows(a: Alert, number: int) -> list[Row]:
     exp = "EXP NOT STATED"
     if a.expires is not None:
-        local = format_time(a.expires)[0]
-        exp = f"EXP {local[11:]}"
-    area = _flat(a.area_desc) or NOT_STATED
-    detail = f"{area[: max(0, COLS - len(exp) - 2)]}, {exp}"
-    link = f"{number:03d} {a.severity.name} {_flat(a.event) or NOT_STATED}"
-    return [Row(_cut(link), False, False, filename(number, 1)), Row(_cut(detail))]
+        local = format_time(a.expires)[0]  # YYYY-MM-DD HH:MM +HH:MM
+        exp = f"EXP {local[5:16]}"  # MM-DD HH:MM in the source's own offset (R3.8)
+    area = truncate_words(_flat(a.area_desc) or NOT_STATED, max(1, COLS - len(exp) - 2))
+    prefix = f"{number:03d} {a.severity.name} "
+    link = prefix + truncate_words(_flat(a.event) or NOT_STATED, COLS - len(prefix))
+    return [Row(_cut(link), False, False, filename(number, 1)), Row(_cut(f"{area}, {exp}"))]
 
 
 def _single_page(number: int, kind: str, title: str, rows: list[Row]) -> Page:
@@ -264,7 +316,9 @@ def build_site_model(alerts: Sequence[Alert], status: DataStatus, area: str) -> 
 
 def _link(kind: str, sp: SubPage) -> NavLink:
     label = {"prev": "PREV", "next": "NEXT", "index": "INDEX"}[kind]
-    return NavLink(kind, sp.number, sp.k, _cut(f"{label} {sp.number}/{sp.k} {sp.title}"))
+    prefix = f"{label} {sp.number}/{sp.k}"  # the page number is never shortened
+    title = _CONT_SUFFIX.sub("", sp.title)  # the number already says which part it is
+    return NavLink(kind, sp.number, sp.k, _cut(f"{prefix} {truncate_words(title, COLS - len(prefix) - 1)}"))
 
 
 def build_nav(pages: Sequence[Page]) -> dict[tuple[int, int], NavContext]:
@@ -288,8 +342,10 @@ def header_text(sp: SubPage, area: str) -> str:
 
 
 def status_rows(status: DataStatus) -> tuple[Row, ...]:
-    stamp = _stamp(status.fetched_at.astimezone(timezone.utc))
-    lines = [DATA_AS_OF.format(stamp=stamp)]
+    if status.fetched_at is None:  # notice site: nothing to date (R10.8)
+        lines = [NO_DATA_TEXT]
+    else:
+        lines = [DATA_AS_OF.format(stamp=_stamp(status.fetched_at.astimezone(timezone.utc)))]
     if status.stale:
         lines.append(STALE_TEXT)
     if status.fallback:

@@ -105,12 +105,12 @@ All constants live in `layout.py`; `paginate`, `render`, `verify` and the proper
 | header | `HEADER_ROWS` | 1 | `P889/12` style page id, area, `k/total`; fixed text, at most 40 columns |
 | body | `BODY_ROWS` | 13 | h1 (double height = 2 rows per line), alert or index content, gaps |
 | status | `STATUS_ROWS` | 5 | `DATA AS OF YYYY-MM-DD HH:MM UTC` (1); `STALE DATA - CHECK WEATHER.GOV` (1); `LIVE UPDATE FAILED - SHOWING LAST GOOD DATA` is 43 characters, so wrapped to 2; `SKIPPED UNREADABLE ALERTS: n` (1) |
-| navigation | `NAV_ROWS` | 3 | one link row each for previous, next, index (each at most 40 columns, truncated title) |
+| navigation | `NAV_ROWS` | 3 | one link row each for previous, next, index (each at most 40 columns: `PREV 889/5 ` plus the title cut at a word with `...`; the number is never cut) |
 | footer | `FOOTER_ROWS` | 2 | `NOT AN OFFICIAL WARNING CHANNEL` (31); on 888 the second row is `CHECK WEATHER.GOV OR LOCAL NWS OFFICE` (37, with the link), elsewhere `SOURCE: US NWS API.WEATHER.GOV` |
 
 `HEADER_ROWS + BODY_ROWS + STATUS_ROWS + NAV_ROWS + FOOTER_ROWS == ROWS == 24` is asserted at import. `COLS = 40`. The status, navigation and footer blocks use at most their constant, so the maximum is reached only in the worst case. Rendered rows are counted as the number of `.row` elements plus the number of `.gap` spacers; `<nav>` and `<footer>` content is part of that count. Each `.row` is at most 40 code points after unescaping. A double-height h1 line is one `.row` that counts as 2 (class `.dh`). The trade-off of a 13-row body is more sub-pages for long alerts; no text is lost, only spread over more pages. Header, status and footer text is produced by `paginate` so the counts stay in one place; header and status text that would exceed their rows is a bug caught by P12.
 
-Time display (R3.8): `EXPIRES 2026-11-13 18:00 -05:00` then `= 2026-11-13 23:00 UTC` on the next row. Index rows show `EXP 18:00 -05:00`. Header/status times are UTC and labelled.
+Time display (R3.8): `MESSAGE EXPIRES 2026-11-13 18:00 -05:00` then `= 2026-11-13 23:00 UTC` on the next row, and `ENDS ...` the same way (`ENDS NOT STATED` when absent; R3.9). Index rows show `EXP 11-13 18:00` (MM-DD HH:MM, source offset). Header/status times are UTC and labelled.
 
 ## 3. Module interfaces
 
@@ -428,3 +428,17 @@ Intentionally deferred
 - Stage-order test (R14.1) spies on first calls: normalise and summarise run inside `paginate`, so the order asserted is fetch, parse, order, {normalise, summarise}, render, verify, publish.
 - Docs denylist scan (R11.4) skips lines that contain a negation (`not`/`never`/`no`) because `docs/BRIEF.md` legitimately states the rule naming the forbidden term.
 - `python -m page888` needs `PYTHONPATH=src` (or an editable install) because the package is not installed in `.venv`; `.gitignore` gained `site/`.
+
+## Revision log (code review r1, 2026-11-13)
+
+Source: `docs/reviews/2026-11-13-teletext-qa-code-review-r1.md`; status per finding in `...-r1-response.md`.
+
+- `fetch.py` catches `http.client.HTTPException` next to `URLError` and `OSError` (finding 1).
+- `paginate.truncate_words(s, width)`: whole-word prefix plus `...`, no trailing space, hard cut only for one huge word. Used for index event and area and for prev/next titles; `NavLink` text is `<KIND> NNN/k <title without (CONT. k/n)>` (findings 2, 3). Index detail row is `<area>, EXP MM-DD HH:MM` (finding 5).
+- `DataStatus.fetched_at` may be `None` (notice site only); `status_rows` then emits `NO ALERT DATA AVAILABLE` instead of `DATA AS OF` (finding 4).
+- `Alert` gained `ends` and `message_expires` (defaults `None`, appended last). `expires` keeps the R3.1 fallback and drives ordering, filtering and the index. DETAILS shows `MESSAGE EXPIRES` and `ENDS`; the summary says `MESSAGE EXPIRES` (finding 6).
+- `Row.join` marks continuation rows of one unbreakable token; `render._runs` omits the joining space for them. `_Item.hold` keeps N following rows on the same sub-page: used for the ID chunks and for `LINK BELOW OPENS RAW JSON DATA` plus the link. The source link text is `SOURCE ALERT JSON (host)`, only for URLs that pass `https_url_or_empty`; the URL itself is no longer printed (finding 9).
+- `render._footer` and index items join rows with a space (finding 11).
+- `verify._Checker` counts `.row` (x2 in `h1.dh`) and `.gap`, and measures unescaped row text: `row count N > 24`, `row text over 40 columns` (finding 10).
+- Workflow: User-Agent from `github.server_url`/`github.repository`; pytest step skipped when `github.event_name == 'schedule'` (findings 7, 8).
+- Side effect: DETAILS always shows `MESSAGE EXPIRES` and `ENDS` (2 to 4 rows) and the source URL rows were replaced by 2 rows, so some alerts need one more sub-page than before (not measured).

@@ -21,7 +21,7 @@ def test_model_fields_match_design():
     names = lambda c: [f.name for f in dataclasses.fields(c)]  # noqa: E731
     assert names(Alert) == [
         "id", "event", "severity", "urgency", "certainty", "area_desc", "headline", "description",
-        "instruction", "onset", "expires", "sender_name", "source_url",
+        "instruction", "onset", "expires", "sender_name", "source_url", "ends", "message_expires",
     ]
     assert names(SubPage) == ["number", "k", "total", "title", "body", "double_height_title"]
     assert names(Page) == ["number", "kind", "subpages", "alert_id"]

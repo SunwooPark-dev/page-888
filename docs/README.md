@@ -53,6 +53,7 @@ Typing a page number is not possible without JavaScript or a server. Navigation 
 - Only 111 alert pages exist (889 to 999). When there are more alerts, the least severe ones are not given pages. The last index page shows `NOT SHOWN: n MORE - SEE WEATHER.GOV` with a link. This is an accepted trade-off.
 - Safety-critical text (the instruction field) is never dropped to fit a page; the alert paginates instead.
 - ASCII mapping is lossy. Page text is printable ASCII. A fixed table maps common characters (for example the degree sign becomes `DEG`, curly quotes become straight quotes); other non-ASCII characters are decomposed and combining marks are dropped, and anything left becomes `?`.
+- Limitation: pages are labelled `lang="en"`, but text is folded to ASCII. Spanish or other non-English NWS text loses accents (for example `á` becomes `a`) and characters with no mapping become `?`, while the page still says it is English. A reader or screen reader may pronounce such text badly. Not fixed yet.
 - Row guarantee: each page holds at most 24 rows of at most 40 columns in the generated grid. The grid is sized in `ch` units so that it can reflow at narrow viewports or large zoom; on a very narrow viewport the browser may wrap a row, so the 24-row count refers to the generated rows, not to the rendered screen.
 - Summaries are rule-based from the alert's own fields (event, severity, urgency, certainty and so on). There is no language model and nothing is added beyond fixed words.
 - Per-page budget: each generated page must be smaller than 50 KB (51,200 bytes, measured in UTF-8) or the build fails. Measured sizes are in [CHECKS.md](CHECKS.md).
@@ -71,7 +72,7 @@ The request uses `status=actual` and `area=<code>`; the nationwide feed is never
 
 ## Hosting
 
-`.github/workflows/pages.yml` builds and deploys to GitHub Pages every 30 minutes (and on manual run and on push to `main`). Tests must pass before the build. The workflow persists `.cache/` between runs. When the build exits with 3 or 5, the notice site is deployed and the job is then marked failed. It does not deploy on exit 2 or 4. GitHub disables scheduled workflows in a public repository after 60 days without repository activity.
+`.github/workflows/pages.yml` builds and deploys to GitHub Pages every 30 minutes (and on manual run and on push to `main`). Tests run before the build on pushes and manual runs; scheduled refreshes skip them because `verify_site` and `tools/check_pages.py` already gate the output. The User-Agent is built from the repository URL (`github.server_url` and `github.repository`), so a fork identifies itself. The workflow persists `.cache/` between runs. When the build exits with 3 or 5, the notice site is deployed and the job is then marked failed. It does not deploy on exit 2 or 4. GitHub disables scheduled workflows in a public repository after 60 days without repository activity.
 
 ## Other documents
 

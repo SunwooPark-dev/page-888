@@ -9,6 +9,7 @@ from htmlcheck import Doc, Elem
 from page888 import layout
 from page888.models import DataStatus, Severity
 from page888.paginate import NOT_STABLE, build_site_model
+from page888.parse import https_url_or_empty
 from page888.render import esc, render_site
 from page888.text import normalise_text
 from test_paginate import NOW, STATUS, alerts_st, mk, status_st
@@ -200,6 +201,7 @@ def test_link_text_is_meaningful():
             text = e.text().strip()
             assert text, name
             assert not re.search(r"click here|^here$|^link$", text, re.I)
+            assert " ," not in text and not text.endswith((",", "-", "(", " ."))
             if re.fullmatch(r"[0-9]{3}(-[0-9]+)?\.html", e.attrs["href"] or ""):
                 assert re.search(r"\b[0-9]{3}\b", text) and len(text.split()) >= 3, text
 
@@ -340,3 +342,72 @@ def test_index_html_byte_identical_for_notice():
 def test_prop_index_alias(alerts):
     files = site(alerts)
     assert files["index.html"] == files["888.html"]
+
+
+# ---- review r1 #2, #3, #9, #11 at HTML level
+
+def _strip(html: str) -> str:
+    html = re.sub(r"<style>.*?</style>", " ", html, flags=re.S)
+    return re.sub(r"<[^>]*>", "", html)
+
+
+def test_long_event_links_end_in_ellipsis_not_mid_word():
+    a = mk(event="Small Craft Advisory For Hazardous Seas And Winds Extended",
+           instruction=" ".join(["Take shelter now."] * 80))
+    files = site([a])
+    for name, html in files.items():
+        for e in Doc(html).find("a"):
+            t = e.text().strip()
+            assert len(t) <= layout.COLS, (name, t)
+            if "Small" in t:
+                assert t.endswith("...") or t.endswith("Extended"), (name, t)
+
+
+def test_long_id_continuation_rows_join_without_space():
+    long_id = "urn:oid:2.49.0.1.840.0." + "6d93" * 20
+    files = site([mk(id=long_id)])
+    stripped = [_strip(h) for n, h in files.items() if n.startswith("889")]
+    assert any(f"ID {long_id}" in t for t in stripped)  # whole token on one page, no space at row breaks
+
+
+def test_source_link_has_short_name_and_page_says_it_is_raw_json():
+    files = site([mk()])
+    pages = [h for n, h in files.items() if n.startswith("889")]
+    links = [e for h in pages for e in Doc(h).find("a") if (e.attrs["href"] or "").startswith("https://")]
+    assert [e.text().strip() for e in links] == ["SOURCE ALERT JSON (api.weather.gov)"]
+    holder = next(h for h in pages if "SOURCE ALERT JSON (api.weather.gov)" in h)
+    assert "LINK BELOW OPENS RAW JSON DATA" in _strip(holder)  # statement and link share a page
+
+
+def test_footer_rows_are_separated_by_a_space():
+    for name in ("888.html", "889.html"):
+        foot = re.search(r"<footer>(.*?)</footer>", site([mk()])[name], re.S).group(1)
+        text = _strip(foot)
+        assert "WARNING CHANNEL CHECK" in text or "WARNING CHANNEL SOURCE" in text, text
+
+
+def test_index_item_rows_are_separated_by_a_space():
+    html = site([mk()])["888.html"]
+    items = re.findall(r"<li>(.*?)</li>", html, re.S)
+    assert items and "889 SEVERE Flood Warning Some County" in _strip(items[0])
+
+
+@given(st.one_of(
+    st.text(max_size=60),
+    st.sampled_from(["javascript:alert(1)", "http://x.example/", "https://[bad", "https:///x",
+                     "https://u@x.example/\"><script>", "https://x.example/a b", "data:text/html,x"]),
+))
+def test_prop_hostile_source_url_never_becomes_a_link(url):
+    from page888.verify import verify_site
+
+    files = site([mk(source_url=url)])
+    assert verify_site(files) == []
+    safe = bool(https_url_or_empty(url))
+    for html in files.values():
+        for e in Doc(html).find("a"):
+            href = e.attrs["href"] or ""
+            if re.fullmatch(r"[0-9]{3}(-[0-9]+)?\.html", href) or href == "https://www.weather.gov/":
+                continue
+            assert safe and href == url == https_url_or_empty(href)
+    if safe:
+        assert any(e.attrs["href"] == url for n, h in files.items() if n.startswith("889") for e in Doc(h).find("a"))

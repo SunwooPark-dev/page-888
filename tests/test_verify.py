@@ -246,3 +246,66 @@ def test_check_pages_cli_agrees_on_site(tmp_path, capsys):
         encoding="utf-8",
     )
     assert cp.main([str(tmp_path), "--strict"]) == 1
+
+
+# ---- review r1 #10: row and column budget
+
+from htmlcheck import Doc  # noqa: E402
+from test_render import rendered_rows  # noqa: E402
+
+
+def _with_extra_rows(name: str, n: int) -> dict[str, str]:
+    files = good()
+    files[name] = files[name].replace("<main>", "<main>" + '<p class="row">x</p>' * n, 1)
+    return files
+
+
+def test_verify_counts_rows_and_allows_exactly_24():
+    base = rendered_rows(Doc(good()["889.html"]))
+    assert base <= 24
+    assert not found(_with_extra_rows("889.html", 24 - base), "row count")
+    assert found(_with_extra_rows("889.html", 25 - base), "row count 25 > 24")
+
+
+def test_verify_counts_double_height_rows_twice():
+    html = good()["889.html"]
+    doc = Doc(html)
+    assert "dh" in doc.find("h1")[0].classes  # event is short: double height
+    n_h1 = len(doc.find("h1")[0].find("span"))
+    base = rendered_rows(doc)
+    # an extra row count equal to the real (doubled) total passes, one more fails
+    assert not found(_with_extra_rows("889.html", 24 - base), "row count")
+    assert found(_with_extra_rows("889.html", 24 - base + 1), "row count")
+    assert n_h1 >= 1
+
+
+def test_verify_counts_gap_spacers():
+    files = good()
+    base = rendered_rows(Doc(files["889.html"]))
+    files["889.html"] = files["889.html"].replace(
+        "<main>", "<main>" + '<p class="row gap">x</p>' * (13 + 24 - base), 1)
+    assert found(files, "row count")
+
+
+def test_verify_fails_on_row_text_over_40_columns():
+    files = good()
+    files["889.html"] = files["889.html"].replace("<main>", '<main><p class="row">' + "x" * 41 + "</p>", 1)
+    assert found(files, "row text over 40 columns")
+    files = good()
+    files["889.html"] = files["889.html"].replace("<main>", '<main><p class="row">' + "x" * 40 + "</p>", 1)
+    assert not found(files, "row text over 40 columns")
+
+
+def test_verify_row_text_counts_unescaped_characters():
+    files = good()
+    files["889.html"] = files["889.html"].replace(
+        "<main>", '<main><p class="row">' + "&amp;" * 40 + "</p>", 1)
+    assert not found(files, "row text over 40 columns")  # 40 characters, 200 bytes of markup
+
+
+def test_prop_generated_sites_pass_the_row_checks():
+    @given(alerts_st, status_st)
+    def inner(a, status):
+        assert verify_site(site([a], status)) == []
+
+    inner()

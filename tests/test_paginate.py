@@ -43,7 +43,10 @@ alerts_st = st.builds(
     severity=st.sampled_from(list(Severity)),
     expires=st.one_of(st.none(), st.just(NOW + timedelta(hours=1))),
     onset=st.one_of(st.none(), st.just(NOW)),
-    source_url=st.sampled_from(["", "https://api.weather.gov/alerts/" + "a" * 90]),
+    source_url=st.sampled_from([
+        "", "https://api.weather.gov/alerts/" + "a" * 90, "javascript:alert(1)", "http://x.example/",
+        "https://[bad", "https://\u00e9.example/\u2603", 'https://x.example/"><script>',
+    ]),
 )
 status_st = st.builds(
     DataStatus, st.just(NOW), st.booleans(), st.booleans(), st.integers(0, 10**6)
@@ -212,7 +215,7 @@ def test_index_rows_have_number_severity_event():
     sp = paginate_index([mk()], STATUS, "CA")[0].subpages[0]
     assert sp.title == "ALERT INDEX CA"
     assert sp.body[0].text == "889 SEVERE Flood Warning" and sp.body[0].href == "889.html"
-    assert sp.body[1].text == "Some County, EXP 16:00 +00:00"
+    assert sp.body[1].text == "Some County, EXP 11-13 16:00"
 
 
 def test_notice_page():
@@ -272,7 +275,9 @@ def test_alert_page_shows_source_and_not_stable():
     rows = [r for sp in paginate_alert(mk(), 889, STATUS, None).subpages for r in sp.body]
     text = " ".join(r.text for r in rows)
     assert "ID urn:x:1" in text and NOT_STABLE in text
-    assert any(r.href == "https://api.weather.gov/alerts/x" for r in rows)
+    link = [r for r in rows if r.href == "https://api.weather.gov/alerts/x"]
+    assert [r.text for r in link] == ["SOURCE ALERT JSON (api.weather.gov)"]
+    assert any("OPENS RAW JSON" in r.text for r in rows)
 
 
 def test_section_order_summary_description_action():
@@ -288,9 +293,198 @@ def test_index_alias_matches_page_888():
 
 def test_status_and_footer_rows():
     full = DataStatus(NOW, True, True, 3)
+    assert not any("DATA AS OF" in r.text for r in status_rows(DataStatus(None, False, False, 0)))
     texts = [r.text for r in status_rows(full)]
     assert texts[0] == "DATA AS OF 2026-11-13 14:00 UTC"
     assert layout.STALE_TEXT in texts and "SKIPPED UNREADABLE ALERTS: 3" in texts
     assert len(texts) == layout.STATUS_ROWS
     assert [r.text for r in footer_rows(False)][0] == layout.DISCLAIMER
     assert footer_rows(True)[1].href == layout.WEATHER_GOV
+
+
+# ---- review r1 #2, #3: word-boundary truncation
+
+LONG_EVENT = "Small Craft Advisory For Hazardous Seas And Winds Extended"
+LONG_AREA = "Yosemite NP outside of the valley; Greater Lake Tahoe Area; Lassen Volcanic National Park"
+
+
+def _ends_on_word_boundary(cut: str, full: str) -> bool:
+    """`cut` (without the trailing ...) is a prefix of `full` ending exactly at a word end."""
+    return full.startswith(cut) and (len(cut) == len(full) or full[len(cut)] == " ")
+
+
+def test_index_area_is_cut_at_a_word_with_ellipsis_and_no_space_before_comma():
+    sp = paginate_index([mk(area_desc=LONG_AREA)], STATUS, "CA")[0].subpages[0]
+    detail = sp.body[1].text
+    assert len(detail) <= layout.COLS and detail.endswith(", EXP 11-13 16:00")
+    area = detail.rsplit(", EXP", 1)[0]
+    assert area.endswith("...") and not area.endswith(" ...") and not area.endswith(" ")
+    assert _ends_on_word_boundary(area[:-3], LONG_AREA)
+
+
+def test_index_area_that_fits_is_untouched_and_trailing_space_is_not_left_before_comma():
+    sp = paginate_index([mk(area_desc="Eastern Sierra Slopes Extra Words")], STATUS, "CA")[0].subpages[0]
+    assert " ," not in sp.body[1].text
+
+
+def test_index_link_label_is_cut_at_a_word_with_ellipsis():
+    sp = paginate_index([mk(event=LONG_EVENT)], STATUS, "CA")[0].subpages[0]
+    text = sp.body[0].text
+    assert len(text) <= layout.COLS and text.endswith("...")
+    assert text.startswith("889 SEVERE ")
+    assert _ends_on_word_boundary(text[len("889 SEVERE "):-3], LONG_EVENT)
+
+
+def test_index_link_label_with_one_huge_word_is_still_marked():
+    sp = paginate_index([mk(event="X" * 80)], STATUS, "CA")[0].subpages[0]
+    assert sp.body[0].text.endswith("...") and len(sp.body[0].text) == layout.COLS
+
+
+def test_short_index_labels_are_not_marked():
+    sp = paginate_index([mk()], STATUS, "CA")[0].subpages[0]
+    assert "..." not in sp.body[0].text and "..." not in sp.body[1].text
+
+
+@given(alerts_st)
+def test_prop_index_rows_never_cut_mid_word(a):
+    from page888.paginate import _flat
+
+    sp = paginate_index([a], STATUS, "CA")[0].subpages[0]
+    link, detail = sp.body[0].text, sp.body[1].text
+    assert len(link) <= layout.COLS and len(detail) <= layout.COLS
+    assert not detail.rsplit(", EXP", 1)[0].endswith(" ")  # no stray space before our comma
+    event = _flat(a.event) or "NOT STATED"
+    prefix = f"889 {a.severity.name} "
+    assert link.startswith(prefix)
+    label = link[len(prefix):]
+    if label.endswith("..."):
+        cut = label[:-3]
+        assert event.startswith(cut) and cut == cut.rstrip()
+        assert len(cut) == 0 or _ends_on_word_boundary(cut, event) or len(link) == layout.COLS
+    else:
+        assert label == event
+
+
+def _nav_for(event: str, instruction: str = "") -> list:
+    a = mk(event=event, instruction=instruction or " ".join(["Take shelter now."] * 80))
+    pages = build_site_model([a], STATUS, "CA")
+    return list(build_nav(pages).items())
+
+
+def test_nav_labels_keep_full_number_and_cut_title_at_a_word():
+    seen = 0
+    for (number, k), ctx in _nav_for(LONG_EVENT):
+        for link in (ctx.prev, ctx.next, ctx.index):
+            if link is None:
+                continue
+            seen += 1
+            assert len(link.text) <= layout.COLS
+            assert f" {link.number}/{link.k}" in link.text, link.text
+            assert not re.search(r"\(CONT\. ?\d*$|\(CONT$", link.text.removesuffix("..."))
+            if link.text.endswith("..."):
+                body = link.text[: -3]
+                assert not body.endswith(" ")
+    assert seen > 4
+
+
+def test_nav_label_for_continuation_page_has_no_dangling_cont():
+    items = dict(_nav_for("Winter Storm Warning"))
+    ctx = items[(889, 3)]
+    assert ctx.prev.text == "PREV 889/2 Winter Storm Warning"
+    assert ctx.next.text == "NEXT 889/4 Winter Storm Warning"
+
+
+@given(alerts_st)
+def test_prop_nav_labels_are_word_aligned(a):
+    pages = build_site_model([a], STATUS, "CA")
+    titles = {(sp.number, sp.k): sp.title for p in pages for sp in p.subpages}
+    for ctx in build_nav(pages).values():
+        for link in (ctx.prev, ctx.next, ctx.index):
+            if link is None:
+                continue
+            head = {"prev": "PREV", "next": "NEXT", "index": "INDEX"}[link.kind]
+            pre = f"{head} {link.number}/{link.k} "
+            assert link.text.startswith(pre.rstrip())
+            rest = link.text[len(pre):]
+            full = re.sub(r" \(CONT\. [0-9]+/[0-9]+\)$", "", titles[(link.number, link.k)])
+            if rest == full or rest == "":
+                continue
+            assert rest.endswith("...")
+            cut = rest[:-3]
+            assert full.startswith(cut) and cut == cut.rstrip()
+            assert len(cut) == 0 or _ends_on_word_boundary(cut, full) or len(link.text) == layout.COLS
+
+
+# ---- review r1 #4: notice site status
+
+def test_notice_status_rows_have_no_data_as_of():
+    rows = status_rows(DataStatus(None, False, False, 0))
+    assert rows and not any("DATA AS OF" in r.text for r in rows)
+    assert all(len(r.text) <= layout.COLS for r in rows)
+
+
+# ---- review r1 #5: expiry date on the index
+
+def test_index_exp_shows_date_and_time():
+    a = mk(expires=datetime(2026, 11, 17, 4, 0, tzinfo=timezone(timedelta(hours=-8))))
+    sp = paginate_index([a], STATUS, "CA")[0].subpages[0]
+    assert sp.body[1].text.endswith("EXP 11-17 04:00")
+    sp = paginate_index([mk(expires=None)], STATUS, "CA")[0].subpages[0]
+    assert sp.body[1].text.endswith("EXP NOT STATED")
+
+
+# ---- review r1 #6: message expiry versus event end
+
+def _details(a):
+    rows = [r for sp in paginate_alert(a, 889, STATUS, None).subpages for r in sp.body]
+    start = next(i for i, r in enumerate(rows) if r.label and r.text == "DETAILS")
+    end = next(i for i, r in enumerate(rows) if r.label and r.text == "SOURCE")
+    return [r.text for r in rows[start + 1:end] if not r.label]
+
+
+def test_details_show_message_expiry_and_ends_separately():
+    ends = datetime(2026, 11, 17, 4, 0, tzinfo=timezone(timedelta(hours=-8)))
+    a = mk(message_expires=NOW + timedelta(hours=2), ends=ends)
+    d = _details(a)
+    assert any(t.startswith("MESSAGE EXPIRES 2026-11-13 16:00") for t in d)
+    assert any(t.startswith("ENDS 2026-11-17 04:00 -08:00") for t in d)
+    assert "= 2026-11-17 12:00 UTC" in d
+    assert not any(t.startswith("EXPIRES ") for t in d)
+
+
+def test_details_ends_not_stated_when_absent():
+    d = _details(mk(ends=None))
+    assert "ENDS NOT STATED" in d
+
+
+# ---- review r1 #9: unbreakable tokens
+
+def test_long_id_rows_join_without_space_and_link_has_short_name():
+    long_id = "urn:oid:2.49.0.1.840.0." + "6d93" * 20
+    a = mk(id=long_id)
+    rows = [r for sp in paginate_alert(a, 889, STATUS, None).subpages for r in sp.body]
+    start = next(i for i, r in enumerate(rows) if r.text.startswith("ID "))
+    chunks = [rows[start]]
+    for r in rows[start + 1:]:
+        if not r.join:
+            break
+        chunks.append(r)
+    assert len(chunks) > 1 and not chunks[0].join and all(c.join for c in chunks[1:])
+    assert "".join(c.text for c in chunks) == "ID " + long_id
+    assert all(len(c.text) <= layout.COLS for c in chunks)
+
+
+def test_source_link_name_uses_host_only_when_it_is_plain_ascii():
+    rows = [r for sp in paginate_alert(mk(source_url="https://alerts.example.gov/a/b"), 889, STATUS, None).subpages
+            for r in sp.body if r.href]
+    assert [r.text for r in rows] == ["SOURCE ALERT JSON (alerts.example.gov)"]
+    rows = [r for sp in paginate_alert(mk(source_url="https://" + "h" * 60 + ".example/x"), 889, STATUS, None).subpages
+            for r in sp.body if r.href]
+    assert [r.text for r in rows] == ["SOURCE ALERT JSON"]
+
+
+# ---- review r1 #11: rows are space-joined in text mode
+
+def test_footer_rows_are_not_glued():
+    # covered in test_render (HTML level); the model keeps them as separate rows
+    assert len(footer_rows(True)) == 2

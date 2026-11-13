@@ -25,6 +25,7 @@ Definitions:
 7. WHEN a parsed alert has a status other than `Actual`, THE SYSTEM SHALL drop it. **[PBT]**
 8. IF the API rejects a well-formed request with a 4xx (for example an unknown area code returns HTTP 400), THEN THE SYSTEM SHALL treat it as a failed fetch without retry (R2.6), use the cache if one exists for the same area (R2.7), and otherwise exit with code 5 and a message naming the HTTP status and area.
 9. THE SYSTEM SHALL document the accepted area codes (states, DC, territories, marine areas as listed by NWS) in the README; validation by pattern alone is intentional and unknown codes are handled by R1.8.
+10. THE SYSTEM SHALL treat `http.client.HTTPException` (for example `IncompleteRead`, `BadStatusLine`) raised while reading the response as a network error: retried like any other, and raised as `FetchError` when attempts are exhausted, so the cache fallback of R2.7 applies. (Test: opener whose body read raises `IncompleteRead`.)
 
 ## R2. Caching, rate-limit courtesy and fallback
 **User story:** As the site owner, I want caching, backoff and last-good fallback, so that outages never blank the site.
@@ -53,6 +54,7 @@ Definitions:
 6. THE SYSTEM SHALL normalise text: strip control characters, collapse NWS hard-wrapped single newlines into spaces while keeping paragraph breaks (two or more consecutive newlines), and map every non-ASCII character to ASCII using the explicit `ASCII_MAP` table in `text.py` (for example the degree sign to `DEG`, en/em dash to `-`, curly quotes to straight quotes, ellipsis to `...`, non-breaking space to a space), then NFKD-decompose and drop combining marks for letters not in the table, and finally replace any remaining character with `?`. The mapping is lossy by design and is documented. **[PBT]** (output has no control characters; idempotent; output is printable ASCII plus paragraph-break newlines; no single newline survives)
 7. IF two alerts share a real id, THEN THE SYSTEM SHALL keep one. Alerts whose id is the missing-id placeholder (`NOT STATED`) are distinct alerts and SHALL NOT be collapsed together. **[PBT]**
 8. THE SYSTEM SHALL keep onset and expires as timezone-aware values with the offset given by the source, and SHALL display them as `YYYY-MM-DD HH:MM +HH:MM` followed on the next row by the same instant in UTC (`= YYYY-MM-DD HH:MM UTC`), so a reader sees both the local time at the source and UTC. WHEN the source has no offset, THE SYSTEM SHALL treat the timestamp as unparseable (R3.4). **[PBT]** (display round-trips to the same instant)
+9. THE SYSTEM SHALL parse both `expires` (the message expiry) and `ends` (the expected end of the event) and keep them separately. `expires` for ordering, filtering and the index is the message expiry, else `ends` (R3.1). Alert pages SHALL show `MESSAGE EXPIRES ...` and `ENDS ...` on separate DETAILS rows, each with its UTC equivalent, and `NOT STATED` when absent. The summary SHALL say `MESSAGE EXPIRES`, never `EXPIRES` alone, and never present `ends` as the message expiry.
 
 ## R4. Severity ordering
 **User story:** As a reader, I want the most dangerous alerts first, so that I see them before the rest.
@@ -90,6 +92,7 @@ Definitions:
 9. THE SYSTEM SHALL NOT split a page break mid-word, except that a single word longer than 40 characters is hard-split (R6.2). **[PBT]**
 10. THE SYSTEM SHALL use these fixed row budgets, defined once in `layout.py`: header 1 row, body 13 rows, status block 5 rows, navigation 3 rows, footer 2 rows (total 24). These counts are maxima that cover the worst case (status block: `DATA AS OF`, `STALE DATA - CHECK WEATHER.GOV`, `LIVE UPDATE FAILED - SHOWING LAST GOOD DATA` wrapped to 2 rows, and the skipped-alerts line). A page may use fewer rows but never more in any block. `<nav>` and `<footer>` rows are part of the 24-row grid. **[PBT]**
 11. THE SYSTEM SHALL emit each blank row as a CSS gap that counts as one rendered row, and SHALL count gaps when enforcing the 24-row limit. **[PBT]**
+12. THE SYSTEM SHALL shorten display labels that do not fit one row (index event and area, prev/next link labels) at a word boundary and end them with `...`, with no space before the `...` or before a following comma; a single word longer than the room is cut hard. The `NNN/k` page number in a prev/next label is never shortened, and the ` (CONT. k/n)` suffix is dropped from those labels (the number carries it). Alert text (description, instruction) is never shortened (R6.4). Index rows show the expiry as `EXP MM-DD HH:MM` in the source offset.
 
 ## R7. Rule-based summary
 **User story:** As a reader, I want a short plain summary first, so that I can grasp the alert quickly.
@@ -128,6 +131,7 @@ Definitions:
 6. THE SYSTEM SHALL show how many alerts were skipped as unparseable, when more than zero.
 7. WHILE the data is stale or fallback and no unexpired alerts remain, THE SYSTEM SHALL render page 888 with `NO UNEXPIRED ALERTS IN LAST GOOD DATA` instead of `NO ACTIVE ALERTS`, directly followed by the stale and/or fallback banner rows.
 8. WHEN there is no data and no usable cache (R2.8), THE SYSTEM SHALL build a notice site consisting of `888.html` and `index.html` only, whose body reads `ALERT DATA UNAVAILABLE - CHECK WEATHER.GOV` with the disclaimer and a link to `https://www.weather.gov/`, and SHALL carry no alert content and no `NO ACTIVE ALERTS` text.
+9. THE SYSTEM SHALL NOT show `DATA AS OF` on the notice site. Its status row reads `NO ALERT DATA AVAILABLE` (`DataStatus.fetched_at` is `None`).
 
 ## R11. Attribution and disclaimer
 **User story:** As the site owner, I must not imply official status.
@@ -137,6 +141,7 @@ Definitions:
 3. THE SYSTEM SHALL show sender (`senderName`) and a link to the source alert on each alert page.
 4. THE SYSTEM SHALL NOT use broadcaster names or logos, including "Ceefax". (Test: scan generated output and docs for a denylist.)
 5. THE SYSTEM SHALL point readers to local official channels (NWS, weather.gov) in the footer text of page 888, with a link to `https://www.weather.gov/`.
+6. THE SYSTEM SHALL give the source link a short accessible name (`SOURCE ALERT JSON (host)`, or `SOURCE ALERT JSON` when the host is long or not plain ASCII), place the row `LINK BELOW OPENS RAW JSON DATA` on the same sub-page, and show the alert ID as text. Continuation rows of one unbreakable token (the ID) are joined without a space in the HTML, and the token is kept on one sub-page.
 
 ## R12. Size budget
 **User story:** As a user on a metered connection, I want small pages.
@@ -182,3 +187,10 @@ Definitions:
 9. THE SYSTEM SHALL ensure tests never access the network and use fixture CAP JSON under `tests/fixtures/`.
 10. THE SYSTEM SHALL log a one-line build summary (area, alert count, skipped, pages, largest page bytes, data age) without logging the User-Agent value.
 11. THE SYSTEM SHALL ship `tools/check_pages.py` as a fast, standalone, stdlib-only subset of `verify.py` for editor hooks and the QA agent. `verify.py` is the authoritative check; every violation `check_pages.py` reports SHALL also be reported by `verify_site`. **[PBT]**
+12. THE SYSTEM SHALL count rendered rows per page in `verify_site` (`.row` elements, two for each inside `h1.dh`, plus `.gap` spacers) and fail the build on more than 24 rows, and on any `.row` whose unescaped text is longer than 40 characters. Footer rows and index item rows are separated by a space in the HTML so text-mode readers do not run words together. The scheduled workflow SHALL skip the pytest step (`if: github.event_name != 'schedule'`), because `verify_site` and `check_pages.py` gate the output, and SHALL build its User-Agent from `github.server_url` and `github.repository`, never from a literal handle.
+
+## Revision log
+
+### Review r1 code review (2026-11-13)
+
+Source: `docs/reviews/2026-11-13-teletext-qa-code-review-r1.md`; findings and their status are in `docs/reviews/2026-11-13-teletext-qa-code-review-r1-response.md`. Existing numbers are unchanged; criteria were appended: R1.10 (HTTP client errors), R3.9 (`ends` and message expiry), R6.12 (word-boundary labels), R10.9 (no `DATA AS OF` on the notice), R11.6 (source link name, JSON statement, joined tokens), R14.12 (row and column checks in `verify_site`, space-joined text-mode rows, workflow test and User-Agent rules). Wording changed: R14.5's test gate no longer runs on scheduled refreshes.

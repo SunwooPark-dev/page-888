@@ -85,7 +85,9 @@ def parse_alert(feature: object) -> Alert | None:
 
     alert_id = _text(props.get("id"), "") or _text(feature.get("id"), NOT_STATED)
     source_url = https_url_or_empty(feature.get("id")) or https_url_or_empty(props.get("@id"))
-    expires = parse_time(props.get("expires")) or parse_time(props.get("ends"))
+    message_expires = parse_time(props.get("expires"))
+    ends = parse_time(props.get("ends"))
+    expires = message_expires or ends  # ordering, filtering and the index (R3.1)
 
     return Alert(
         id=alert_id,
@@ -101,6 +103,8 @@ def parse_alert(feature: object) -> Alert | None:
         expires=expires,
         sender_name=_text(props.get("senderName")),
         source_url=source_url,
+        ends=ends,
+        message_expires=message_expires,
     )
 
 

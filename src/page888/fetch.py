@@ -6,6 +6,7 @@ User-Agent is sent but never included in an error message.
 """
 from __future__ import annotations
 
+import http.client
 import random
 import re
 import time
@@ -104,7 +105,9 @@ def fetch_alerts(
             retry_after = parse_retry_after(exc.headers.get("Retry-After") if exc.headers else None, clock())
             if retry_after is not None and retry_after > cfg.max_delay_s:
                 raise FetchError(f"{last}; Retry-After {retry_after:.0f}s exceeds the {cfg.max_delay_s:.0f}s cap") from None
-        except (urllib.error.URLError, OSError) as exc:  # URLError and TimeoutError are OSErrors
+        # URLError and TimeoutError are OSErrors. IncompleteRead, BadStatusLine and
+        # RemoteDisconnected (a body or status line cut off mid-read) are HTTPExceptions, not OSErrors.
+        except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
             last = f"network error ({type(exc).__name__})"
         if attempt < len(delays):
             sleep(max(retry_after or 0.0, delays[attempt]))

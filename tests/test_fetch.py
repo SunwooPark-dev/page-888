@@ -226,3 +226,43 @@ def test_non_200_success_status_is_an_error_without_retry_loop_crash():
     op = Opener(Resp(status=204))
     with pytest.raises(FetchError):
         run(op)
+
+
+# ---- review r1 #1: http.client errors during the body read
+
+import http.client  # noqa: E402
+
+
+class _BrokenBody(Resp):
+    def __init__(self, exc: BaseException):
+        super().__init__()
+        self._exc = exc
+
+    def read(self, n: int = -1) -> bytes:
+        raise self._exc
+
+
+@pytest.mark.parametrize("exc", [
+    http.client.IncompleteRead(b"ab", 10),
+    http.client.BadStatusLine("junk"),
+    http.client.RemoteDisconnected("closed"),
+])
+def test_http_client_errors_are_retried_then_raised_as_fetch_error(exc):
+    op = Opener(*[_BrokenBody(exc) for _ in range(4)])
+    with pytest.raises(FetchError) as ei:
+        run(op)
+    assert len(op.calls) == 4
+    assert ei.value.status is None
+
+
+def test_incomplete_read_then_success_returns_body():
+    op = Opener(_BrokenBody(http.client.IncompleteRead(b"a", 5)), Resp())
+    body, sleeps = run(op)
+    assert body == OK_BODY and len(op.calls) == 2 and len(sleeps) == 1
+
+
+def test_fetch_error_message_has_no_user_agent_after_incomplete_read():
+    op = Opener(*[_BrokenBody(http.client.IncompleteRead(b"a", 5)) for _ in range(4)])
+    with pytest.raises(FetchError) as ei:
+        run(op)
+    assert UA not in str(ei.value)

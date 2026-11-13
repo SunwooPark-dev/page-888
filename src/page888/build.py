@@ -32,7 +32,7 @@ def _err(msg: str) -> None:
 
 def _publish_notice(cfg: Config, now: datetime) -> bool:
     """Publish the notice site; True if it verified and was published."""
-    status = DataStatus(now, False, False, 0)
+    status = DataStatus(None, False, False, 0)  # no data, so no "DATA AS OF" line (R10.8)
     files = render_site(paginate_notice(cfg.area, status), status, cfg.area)
     problems = verify_site(files)
     if problems:

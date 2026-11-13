@@ -16,7 +16,7 @@ alerts = st.builds(
     urgency=st.sampled_from(["Immediate", "Expected", "Future", "Past", "Unknown"]),
     certainty=st.sampled_from(["Observed", "Likely", "Possible", "Unlikely", "Unknown"]),
     area_desc=texts, headline=texts, description=texts, instruction=texts,
-    onset=times, expires=times, sender_name=texts, source_url=texts,
+    onset=times, expires=times, message_expires=times, ends=times, sender_name=texts, source_url=texts,
 )
 
 
@@ -46,8 +46,8 @@ def test_prop_summary_only_fields_and_fixed_words(a, event, area, headline, _unu
     fixed = list(FIXED_WORDS) + [a.severity.name, a.urgency.upper(), a.certainty.upper()]
     for w in sorted(fixed, key=len, reverse=True):
         rest = rest.replace(w, "")
-    if a.expires:
-        for t in format_time(a.expires):
+    if a.message_expires:
+        for t in format_time(a.message_expires):
             rest = rest.replace(t, "")
     for p in sorted((normalise_text(x) for x in (event, area, headline)), key=len, reverse=True):
         if p:
@@ -67,5 +67,11 @@ def test_example():
         "certainty": "Likely", "areaDesc": "Kern County", "headline": "Flood Warning issued",
         "expires": "2026-11-13T14:00:00-08:00"}})
     s = summarise(a)
+    assert "MESSAGE EXPIRES 2026-11-13 14:00 -08:00" in s
     for needle in ("Flood Warning", "SEVERE", "EXPECTED", "LIKELY", "Kern County", "2026-11-13 14:00 -08:00"):
         assert needle in s
+
+
+def test_summary_does_not_present_ends_as_message_expiry():
+    a = parse_alert({"properties": {"status": "Actual", "ends": "2026-11-17T04:00:00-08:00"}})
+    assert "MESSAGE EXPIRES NOT STATED" in summarise(a)

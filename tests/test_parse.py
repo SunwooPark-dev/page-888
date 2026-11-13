@@ -260,3 +260,15 @@ def test_feed_http400_body_is_not_a_feed(fixture_bytes):
 def test_feed_accepts_str_or_bytes_json():
     raw = json.dumps({"features": [_feat()]}).encode()
     assert len(parse_feed(raw)[0]) == 1
+
+
+def test_ends_and_message_expiry_are_parsed_separately():
+    exp, ends = "2026-11-13T18:00:00-08:00", "2026-11-17T04:00:00-08:00"
+    a = parse_alert(_feat(expires=exp, ends=ends))
+    assert a.message_expires == parse_time(exp) and a.ends == parse_time(ends)
+    assert a.expires == parse_time(exp)  # ordering and filtering still use the message expiry first
+    a = parse_alert(_feat(expires=None, ends=ends))
+    assert a.message_expires is None and a.ends == parse_time(ends) and a.expires == parse_time(ends)
+    a = parse_alert(_feat(expires=exp, ends=None))
+    assert a.ends is None and a.message_expires == parse_time(exp)
+    assert parse_alert(_feat(ends="2026-11-17T04:00:00")).ends is None

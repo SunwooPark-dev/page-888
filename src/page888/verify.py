@@ -12,6 +12,7 @@ from html.parser import HTMLParser
 from typing import Mapping
 from urllib.parse import urlsplit
 
+from .layout import COLS, ROWS
 from .palette import ALLOWED_PAIRS, MIN_TEXT_CONTRAST, MIN_UI_CONTRAST, PALETTE, contrast_ratio
 
 MAX_PAGE_BYTES = 51200  # a page must be strictly smaller (R12)
@@ -133,6 +134,7 @@ class _Checker(HTMLParser):
         self.css = ""
         self.in_style = False
         self.stack: list[dict] = []
+        self.rows = 0  # `.row` elements (twice inside h1.dh) plus `.gap` spacers (R6.1)
 
     def add(self, msg: str) -> None:
         if msg not in self.problems:
@@ -176,9 +178,17 @@ class _Checker(HTMLParser):
                 self.add(f"external resource <{tag} {name}>")
         if tag == "a":
             self.check_href(a.get("href", ""))
+        classes = a.get("class", "").split()
+        if "row" in classes:
+            self.rows += 2 if any(f["dh"] for f in self.stack) else 1
+        if "gap" in classes:
+            self.rows += 1
         if tag not in _VOID:
-            classes = a.get("class", "").split()
-            self.stack.append({"tag": tag, "content": False, "band": any(c.startswith("b-") for c in classes)})
+            self.stack.append({
+                "tag": tag, "content": False, "band": any(c.startswith("b-") for c in classes),
+                "dh": tag == "h1" and "dh" in classes,
+                "row": [] if "row" in classes else None,  # text of a `.row`, measured at its end tag
+            })
             if tag == "a" and any(f["band"] for f in self.stack[:-1]):
                 self.add("link inside a colour band")
 
@@ -211,6 +221,9 @@ class _Checker(HTMLParser):
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i]["tag"] == tag:
                 frame = self.stack[i]
+                for closed in self.stack[i:]:
+                    if closed["row"] is not None and len("".join(closed["row"])) > COLS:
+                        self.add(f"row text over {COLS} columns")
                 del self.stack[i:]
                 if not frame["content"]:
                     self.add(f"empty element <{tag}>")
@@ -225,6 +238,9 @@ class _Checker(HTMLParser):
             self.css += data
         elif "\xa0\xa0" in data:
             self.add("nbsp run")
+        for frame in self.stack:
+            if frame["row"] is not None:
+                frame["row"].append(data)
         if data.strip() and self.stack:
             self.stack[-1]["content"] = True
         if self.in_style and "url(" in data.lower() and "http" in data.lower():
@@ -248,6 +264,8 @@ def verify_page(name: str, html: str, files: Mapping[str, str]) -> tuple[list[st
         c.add(f"main count {c.main} != 1")
     if c.h1 != 1:
         c.add(f"h1 count {c.h1} != 1")
+    if c.rows > ROWS:
+        c.add(f"row count {c.rows} > {ROWS}")
     if any(not ok for ok in c.navs):
         c.add("nav without aria-label")
     if not c.navs:

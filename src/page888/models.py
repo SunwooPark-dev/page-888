@@ -28,9 +28,11 @@ class Alert:
     description: str
     instruction: str  # "" when absent
     onset: datetime | None  # tz-aware, source offset kept (R3.8)
-    expires: datetime | None  # tz-aware, source offset kept; falls back to `ends`
+    expires: datetime | None  # tz-aware, source offset kept; message expiry, else `ends` (ordering/filter only)
     sender_name: str
     source_url: str  # "" unless it passes the https check (R8.2)
+    ends: datetime | None = None  # CAP `ends`: when the event is expected to end (review r1 #6)
+    message_expires: datetime | None = None  # CAP `expires`: when this message expires, no fallback
 
 
 @dataclass(frozen=True)
@@ -39,6 +41,7 @@ class Row:
     gap_before: bool = False  # one CSS gap row before this row; counts as a row
     label: bool = False  # section label (rendered as h2)
     href: str = ""  # relative page link or https URL; "" for plain text
+    join: bool = False  # continues the previous row's unbreakable token: rendered with no space between
 
 
 @dataclass(frozen=True)
@@ -63,7 +66,7 @@ class Page:
 
 @dataclass(frozen=True)
 class DataStatus:
-    fetched_at: datetime
+    fetched_at: datetime | None  # None only on the notice site: there is no data to date
     stale: bool  # from age only (R10.3); also true if fetched_at is in the future
     fallback: bool  # fetch failed, cache used (independent of stale)
     skipped: int

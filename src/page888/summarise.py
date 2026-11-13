@@ -9,7 +9,7 @@ from .models import Alert
 from .text import format_time, normalise_text
 
 FIXED_WORDS = (
-    "SEVERITY", "URGENCY", "CERTAINTY", "AREA", "EXPIRES", "HEADLINE", "NOT STATED",
+    "SEVERITY", "URGENCY", "CERTAINTY", "AREA", "MESSAGE", "EXPIRES", "HEADLINE", "NOT STATED",
 )
 
 
@@ -28,10 +28,11 @@ def summarise(a: Alert) -> str:
         f"CERTAINTY {a.certainty.upper()}.",
         f"AREA {_field(a.area_desc)}.",
     ]
-    if a.expires is not None:
-        local, utc = format_time(a.expires)
-        parts.append(f"EXPIRES {local} {utc}.")
+    # The message expiry only: the event end is on the DETAILS rows and may be days later.
+    if a.message_expires is not None:
+        local, utc = format_time(a.message_expires)
+        parts.append(f"MESSAGE EXPIRES {local} {utc}.")
     else:
-        parts.append("EXPIRES NOT STATED.")
+        parts.append("MESSAGE EXPIRES NOT STATED.")
     parts.append(f"HEADLINE {_field(a.headline)}.")
     return " ".join(parts)
