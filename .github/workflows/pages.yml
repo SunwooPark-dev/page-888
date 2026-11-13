@@ -1,0 +1,97 @@
+name: Build and deploy Page 888
+
+on:
+  schedule:
+    # Every 30 minutes, off the top of the hour (GitHub allows 5 minutes at the shortest; see docs/SOURCES.md).
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # NWS requires a descriptive User-Agent. It names this repository's public URL, so a fork
+  # identifies itself and no personal handle or contact is hard-coded.
+  PAGE888_USER_AGENT: "Page888 (${{ github.server_url }}/${{ github.repository }})"
+  PAGE888_AREA: CA
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pytest==9.2.0 hypothesis==6.170.15
+
+      # Tests gate pushes and manual runs. Scheduled refreshes skip them: verify_site and
+      # check_pages already gate the output, and a flaky test must not freeze the live site.
+      - name: Run tests
+        if: github.event_name != 'schedule'
+        run: pytest -q
+
+      # Mandatory (task 15.2): the response cache must survive between runs.
+      - name: Restore response cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .cache
+          key: page888-cache-${{ env.PAGE888_AREA }}-${{ github.run_id }}
+          restore-keys: |
+            page888-cache-${{ env.PAGE888_AREA }}-
+
+      # Exit codes: 0 ok, 2 config, 3 no data, 4 verify failed, 5 API rejected.
+      # The exit code is recorded; the job fails visibly in the last step.
+      - name: Build site
+        id: build
+        run: |
+          set +e
+          PYTHONPATH=src python -m page888
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Save response cache
+        if: steps.build.outputs.code == '0'
+        uses: actions/cache/save@v6
+        with:
+          path: .cache
+          key: page888-cache-${{ env.PAGE888_AREA }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # Deploy on 0, 3 or 5. Never on 2 or 4 (nothing new was published).
+      - name: Check generated pages
+        if: contains(fromJSON('["0","3","5"]'), steps.build.outputs.code)
+        run: python tools/check_pages.py site --strict
+
+      - name: Upload site artifact
+        if: contains(fromJSON('["0","3","5"]'), steps.build.outputs.code)
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        if: contains(fromJSON('["0","3","5"]'), steps.build.outputs.code)
+        uses: actions/deploy-pages@v5
+
+      # Exit 3 or 5: the notice site was deployed, but the run must still be red.
+      - name: Fail the job if the build did not exit 0
+        if: steps.build.outputs.code != '0'
+        run: |
+          echo "page888 build exited with code ${{ steps.build.outputs.code }}"
+          exit 1
