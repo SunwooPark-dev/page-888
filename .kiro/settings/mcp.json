@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch",
+        "--allow-private-ips",
+        "--user-agent",
+        "Page888 (https://github.com/SunwooPark-dev/page-888)",
+        "--allowed-hosts",
+        "docs.github.com",
+        "www.weather.gov",
+        "weather-gov.github.io"
+      ],
+      "disabled": false
+    }
+  }
+}
