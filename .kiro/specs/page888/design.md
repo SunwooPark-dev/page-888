@@ -400,3 +400,11 @@ Intentionally deferred
 - Enumerating valid area codes in the validator (item 21): deferred; unknown but well-formed codes are handled via the HTTP 400 path, and a code list would go stale.
 - Detection of a persisted cache being silently lost on the host: deferred to the host workflow (task 15.2); the notice-site rule limits the harm.
 - Large-text contrast exceptions (3:1 pairs): not used; every pair needs 4.5:1, which keeps the check simple.
+
+## Implementation notes
+- `build_site_model` and `paginate_index` take alerts already in `order_alerts` order (the signature has no `now`).
+- `paginate_alert`'s `status` and `nav` arguments do not change the body; links come from `build_nav`, and status/header/footer text from `status_rows`/`header_text`/`footer_rows`.
+- `Row` gained `label` (h2 section label) and `href` (link target) fields, both defaulted.
+- Alert body order is SUMMARY, DESCRIPTION, ACTION, DETAILS (onset, expires, sender), SOURCE, so safety text comes first; severity/urgency/certainty appear in the summary.
+- The h1 is not part of `SubPage.body`; its cost (double-height lines count 2) is added by `body_cost`, and titles are cut to at most 2 wrapped rows.
+- Prev/next follow one flat order (888/1.. then 889/1..); every sub-page except 888/1 links to 888. Byte-identical `index.html` is made at publish time (`INDEX_ALIAS`); its byte-level test belongs to the render/publish tasks.

@@ -37,6 +37,8 @@ class Alert:
 class Row:
     text: str  # <= 40 code points, ASCII
     gap_before: bool = False  # one CSS gap row before this row; counts as a row
+    label: bool = False  # section label (rendered as h2)
+    href: str = ""  # relative page link or https URL; "" for plain text
 
 
 @dataclass(frozen=True)
