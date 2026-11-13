@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "page-budget-a11y",
+      "description": "On save of generated pages, templates or render.py, check size budget, no-JS and accessibility structure of site/.",
+      "trigger": "PostFileSave",
+      "matcher": "(^|/)site/.*\\.html$|(^|/)templates/.*|(^|/)src/page888/render\\.py$|\\.css$",
+      "action": {
+        "type": "command",
+        "command": "python3 tools/check_pages.py site"
+      },
+      "timeout": 60
+    }
+  ]
+}

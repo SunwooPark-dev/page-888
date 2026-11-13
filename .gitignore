@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+.cache/
+.pytest_cache/
+.hypothesis/
+# NOTE: never ignore .kiro/ (Kiroween rule: may disqualify)

@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "no-js-guard",
+      "description": "When the agent stops, run the strict no-JS / no-external-resource check over site/.",
+      "trigger": "Stop",
+      "matcher": ".*",
+      "action": {
+        "type": "command",
+        "command": "python3 tools/check_pages.py site --strict"
+      },
+      "timeout": 60
+    }
+  ]
+}

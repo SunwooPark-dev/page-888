@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "spec-trace",
+      "description": "After saving generator code, require traceability to spec requirements/properties and a matching test.",
+      "trigger": "PostFileSave",
+      "matcher": "(^|/)src/page888/[^/]+\\.py$",
+      "action": {
+        "type": "agent",
+        "prompt": "A file under src/page888/ was just saved. Using .kiro/specs/page888/ (requirements.md, design.md, tasks.md), state which requirement numbers (e.g. R6.4) and which design property numbers this change implements. Then add or update the matching test in tests/test_<module>.py (property tests named test_prop_*; no network, use tests/fixtures/). If no requirement or property covers the change, say so and propose a spec update instead of silently proceeding. Keep stdlib-only runtime."
+      },
+      "timeout": 120
+    }
+  ]
+}
