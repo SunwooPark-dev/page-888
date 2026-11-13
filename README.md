@@ -6,7 +6,7 @@ Built for the Kiroween 2026 hackathon (Resurrection category) with Kiro. Specs, 
 
 Live site: https://sunwoopark-dev.github.io/page-888/ (area CA)
 
-Status: build phase. Generator, tests and the teletext-qa review fixes are in `main`. The live site is currently a snapshot built from `main` and published from the `gh-pages` branch; it is not refreshed automatically yet, so check the `DATA AS OF` line. The scheduled GitHub Actions refresh (every 30 minutes) is written but not yet pushed. Manual accessibility checks (screen reader, keyboard, 200% zoom, old devices) are untested; see [docs/CHECKS.md](docs/CHECKS.md).
+Status: build phase. Generator, tests and the teletext-qa review fixes are in `main`. The live site is rebuilt from live NWS data and deployed to GitHub Pages by GitHub Actions ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)) every 30 minutes and on each push; GitHub may delay scheduled runs, so check the `DATA AS OF` line. Manual accessibility checks (screen reader, keyboard, 200% zoom, old devices) are untested; see [docs/CHECKS.md](docs/CHECKS.md).
 
 ## Run
 
