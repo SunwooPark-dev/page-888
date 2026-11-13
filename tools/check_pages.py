@@ -36,6 +36,7 @@ class PageChecker(HTMLParser):
         self.title_text = ""
         self.has_title = False
         self.navs: list[bool] = []
+        self.in_style = False
 
     def _add(self, msg: str) -> None:
         if msg not in self.problems:
@@ -47,6 +48,8 @@ class PageChecker(HTMLParser):
             self._add("script element")
         if tag == "html" and a.get("lang", "").strip():
             self.has_lang = True
+        if tag == "style":
+            self.in_style = True
         if tag == "title":
             self.has_title = True
             self.in_title = True
@@ -75,11 +78,13 @@ class PageChecker(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag == "title":
             self.in_title = False
+        if tag == "style":
+            self.in_style = False
 
     def handle_data(self, data: str) -> None:
         if self.in_title:
             self.title_text += data
-        if self.strict and "url(" in data.lower() and "http" in data.lower():
+        if self.strict and self.in_style and "url(" in data.lower() and "http" in data.lower():
             self._add("external url() in CSS")
 
     def finish(self) -> list[str]:

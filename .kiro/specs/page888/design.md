@@ -414,3 +414,9 @@ Intentionally deferred
 - The index is an `<ol>` of `<li>` (link row plus detail row); the overflow row and notice link are plain `<p>` links. A nav with no links shows `NO OTHER PAGES` (no empty element).
 - Banner rows (stale, fallback) get class `b-red-black` and the header row `b-blue-white`; these are the only colour bands, and no link sits inside a band. Every CSS colour rule sets both colour and background so each pair is checkable.
 - Row counting in tests: `.row` elements (x2 inside `h1.dh`) plus `.gap` classes; `.gap` is a margin on the row that follows it.
+- `verify_site` returns `"<file>: <message>"` strings; messages for the cheap checks equal those of `tools/check_pages.py` so the subset test compares them exactly. Allowlist violations read `disallowed element <x>` / `disallowed attribute <tag attr>`; `index.html` is exempt from the unique-title rule and must equal `888.html`.
+- `check_pages.py` flagged `url(http` in visible alert text (false positive vs `verify.py`); it now checks `url()` only inside `<style>`.
+- `verify.py` also requires exactly one viewport meta with the exact content, at least one nav, relative links to existing page files, and https-only external links; `ALLOWED_ATTRS` has no `class` on nav (the templates emit none there).
+- `store_cache` validates with `parse_feed` (raises `FeedError`, nothing written); the entry stores the body as a UTF-8 string with ISO `fetched_at` (must be tz-aware, else the entry is treated as no cache).
+- `get_data` catches any `Exception` from the fetcher or validation to fall back (fetch.py's `FetchError` does not exist yet); with no cache for the area the original exception is re-raised. It returns `skipped=0`; the build sets the real count.
+- A fresh cache that is also older than `stale_after_s` (interval configured above stale threshold) reports `stale=True` without fetching.

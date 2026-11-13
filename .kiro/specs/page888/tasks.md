@@ -43,15 +43,15 @@ Test-first where practical: write the test (or property) named in the task, see 
   - [x] 8.4 Render stale and fallback banners (`STALE DATA - CHECK WEATHER.GOV`, `LIVE UPDATE FAILED - SHOWING LAST GOOD DATA`) independently, and the skipped-count line (R10.3, R10.4, R10.6)
   - [x] 8.5 Static CSS and markup tests (R13.8-R13.11, R13.15, R13.16, R13.19): no `outline:none`/`outline:0`; no `@keyframes`, `animation`, `transition`; `ch` on `.tt` and no `px` width on `.tt`/`.row`; links have `min-height`/`min-width` >= 24px; viewport meta present and no `user-scalable=no`; every colour pair in CSS is in `ALLOWED_PAIRS`; links appear only on black/blue bands; focus outline >= 3:1 on those; h1 text appears once with double height (R13.14)
 
-- [ ] 9. Verification (R8.3, R9.3, R12, R13, R14.11)
-  - [ ] 9.1 Tests: each violation type is detected by `verify_site` on hand-made bad HTML; 50 KB boundary measured in UTF-8 bytes (51,199 passes, 51,200 fails, using a multi-byte character to prove byte counting); `test_prop_page_size_budget` with worst-case alerts
-  - [ ] 9.2 Implement `verify.py` (stdlib `html.parser` checks, size budget, link existence, `ALLOWED_ELEMENTS`/`ALLOWED_ATTRS`, CSS checks from 8.5, uses `palette.contrast_ratio`; no logic duplicated from `palette.py`)
-  - [ ] 9.3 Extend `verify_site` and tests with the R8.3 element/attribute allowlist (any unlisted tag or attribute is a violation; `test_prop_allowlist`), the CSS checks from 8.5, viewport check, and h1-presence on index and k>=2 pages
-  - [ ] 9.4 `tools/check_pages.py` is the fast hook-time subset of `verify.py` (R14.11): add `test_prop_check_pages_subset_of_verify` running both on the same good and bad pages; every `check_pages` finding must have a `verify_site` counterpart; fix `check_pages.py` where it disagrees
+- [x] 9. Verification (R8.3, R9.3, R12, R13, R14.11)
+  - [x] 9.1 Tests: each violation type is detected by `verify_site` on hand-made bad HTML; 50 KB boundary measured in UTF-8 bytes (51,199 passes, 51,200 fails, using a multi-byte character to prove byte counting); `test_prop_page_size_budget` with worst-case alerts
+  - [x] 9.2 Implement `verify.py` (stdlib `html.parser` checks, size budget, link existence, `ALLOWED_ELEMENTS`/`ALLOWED_ATTRS`, CSS checks from 8.5, uses `palette.contrast_ratio`; no logic duplicated from `palette.py`)
+  - [x] 9.3 Extend `verify_site` and tests with the R8.3 element/attribute allowlist (any unlisted tag or attribute is a violation; `test_prop_allowlist`), the CSS checks from 8.5, viewport check, and h1-presence on index and k>=2 pages
+  - [x] 9.4 `tools/check_pages.py` is the fast hook-time subset of `verify.py` (R14.11): add `test_prop_check_pages_subset_of_verify` running both on the same good and bad pages; every `check_pages` finding must have a `verify_site` counterpart; fix `check_pages.py` where it disagrees
 
-- [ ] 10. Cache and freshness (R2.1-R2.2, R2.9, R2.10, R10.3)
-  - [ ] 10.1 Tests: `test_prop_is_fresh` (`0 <= age < interval`; future `fetched_at` never fresh), `test_prop_is_stale_monotonic` (negative age is stale), `test_prop_cache_keyed_by_area` (store for A, load for B returns None, and `get_data` never serves A's alerts for B), atomic write, invalid body not stored
-  - [ ] 10.2 Implement `cache.py` (file `alerts-<AREA>.json`, entry holds area) and `get_data` (fresh cache skips fetch; failed fetch falls back with `fallback=True`, stale from age only; no cache raises)
+- [x] 10. Cache and freshness (R2.1-R2.2, R2.9, R2.10, R10.3)
+  - [x] 10.1 Tests: `test_prop_is_fresh` (`0 <= age < interval`; future `fetched_at` never fresh), `test_prop_is_stale_monotonic` (negative age is stale), `test_prop_cache_keyed_by_area` (store for A, load for B returns None, and `get_data` never serves A's alerts for B), atomic write, invalid body not stored
+  - [x] 10.2 Implement `cache.py` (file `alerts-<AREA>.json`, entry holds area) and `get_data` (fresh cache skips fetch; failed fetch falls back with `fallback=True`, stale from age only; no cache raises)
 
 - [ ] 11. Fetch with backoff (R1.3-R1.6, R1.8, R2.4-R2.8)
   - [ ] 11.1 Tests with fake opener/sleep/rng: UA header sent, URL has `status=actual` (lowercase) and `area=`, never `status=Actual`, no nationwide URL, `test_prop_backoff_bounds` (ceilings non-decreasing, <= cap, delays in `[0, ceiling]`), `test_prop_retry_after_parse`, 429/5xx retried up to `max_attempts` (4), 404 not retried, recorded 400 fixture raises `FetchError(400)`, `Retry-After` honoured as `max(Retry-After, delay)`, `Retry-After` > cap stops retrying, network error retried, request timeout of `timeout_s` passed to the opener
