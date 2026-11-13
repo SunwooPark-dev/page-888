@@ -408,3 +408,9 @@ Intentionally deferred
 - Alert body order is SUMMARY, DESCRIPTION, ACTION, DETAILS (onset, expires, sender), SOURCE, so safety text comes first; severity/urgency/certainty appear in the summary.
 - The h1 is not part of `SubPage.body`; its cost (double-height lines count 2) is added by `body_cost`, and titles are cut to at most 2 wrapped rows.
 - Prev/next follow one flat order (888/1.. then 889/1..); every sub-page except 888/1 links to 888. Byte-identical `index.html` is made at publish time (`INDEX_ALIAS`); its byte-level test belongs to the render/publish tasks.
+- `render_subpage` takes an extra `area` argument (header row text); `render_site(pages, status, area)` returns file name to HTML and adds `index.html` as the same string as `888.html` (task 7.6 byte test lives in `tests/test_render.py`). `publish` need not re-copy it.
+- Each alert sub-page has a unique title `P<number>/<k> <h1 text> - Page 888`; severity words are in the SUMMARY on sub-page 1 only, so "severity on every alert page" is read as the first sub-page of each alert.
+- Rows of one paragraph are joined by a plain space between the `<span class="row">` elements so text extraction and copy/paste keep word breaks.
+- The index is an `<ol>` of `<li>` (link row plus detail row); the overflow row and notice link are plain `<p>` links. A nav with no links shows `NO OTHER PAGES` (no empty element).
+- Banner rows (stale, fallback) get class `b-red-black` and the header row `b-blue-white`; these are the only colour bands, and no link sits inside a band. Every CSS colour rule sets both colour and background so each pair is checkable.
+- Row counting in tests: `.row` elements (x2 inside `h1.dh`) plus `.gap` classes; `.gap` is a margin on the row that follows it.
