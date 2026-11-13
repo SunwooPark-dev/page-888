@@ -1,12 +1,12 @@
 # Page 888
 
-Live US National Weather Service alerts as retro teletext-style pages: 40x24 character grid, eight block colours, numbered pages, no JavaScript, each page under 50 KB. Built to be readable on constrained devices and with assistive technology (manual accessibility checks are still pending; see [docs/CHECKS.md](docs/CHECKS.md)).
+US National Weather Service alerts as retro teletext-style pages: 40x24 character grid, eight block colours, numbered pages, no JavaScript, each page under 50 KB. Built to be readable on constrained devices and with assistive technology (manual accessibility checks are still pending; see [docs/CHECKS.md](docs/CHECKS.md)).
 
 Built for the Kiroween 2026 hackathon (Resurrection category) with Kiro. Specs, steering, hooks and a custom review agent live in [`.kiro/`](.kiro/).
 
-Live site: LIVE_URL_TBD
+Live site: https://sunwoopark-dev.github.io/page-888/ (area CA)
 
-Status: build phase. The generator and tests are implemented; hosting is configured through GitHub Actions and has not been confirmed live yet.
+Status: build phase. Generator, tests and the teletext-qa review fixes are in `main`. The live site is currently a snapshot built from `main` and published from the `gh-pages` branch; it is not refreshed automatically yet, so check the `DATA AS OF` line. The scheduled GitHub Actions refresh (every 30 minutes) is written but not yet pushed. Manual accessibility checks (screen reader, keyboard, 200% zoom, old devices) are untested; see [docs/CHECKS.md](docs/CHECKS.md).
 
 ## Run
 

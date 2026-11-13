@@ -32,7 +32,7 @@ No specific power has been verified for this project. Categories worth checking 
 
 ## Build phase
 
-- Spec-driven task execution: the generator was implemented task by task from `.kiro/specs/page888/tasks.md` in Kiro CLI. Task 14 (partly), 15 and 16 are ticked only for what is in place locally; manual accessibility checks and the first live deploy are pending.
+- Spec-driven task execution: the generator was implemented task by task from `.kiro/specs/page888/tasks.md` in Kiro CLI. Task 14 (partly), 15 and 16 are ticked only for what is in place locally; manual accessibility checks are pending. The site is live at https://sunwoopark-dev.github.io/page-888/ as a snapshot from the `gh-pages` branch; the scheduled Actions workflow is not pushed yet.
 - Fetch MCP server: configured in `.kiro/settings/mcp.json` (`mcp-server-fetch`, allowed hosts `docs.github.com`, `www.weather.gov`, `weather-gov.github.io`). It was used to retrieve and quote the GitHub Actions `schedule` and NWS API documentation recorded in `docs/SOURCES.md`.
 - Hooks: `.kiro/hooks/page-budget-a11y.json`, `spec-trace.json` and `no-js-guard.json` are in the repository and run `tools/check_pages.py` and spec-trace prompts as described above.
-- teletext-qa agent: defined in `.kiro/agents/teletext-qa.json`. A design review of the spec is in `docs/reviews/`. A review of the finished generator and output is pending.
+- teletext-qa agent: defined in `.kiro/agents/teletext-qa.json`. A design review of the spec is in `docs/reviews/`. Code review round 1 of the finished generator and live output returned FAIL (1 High, 8 Medium, 5 Low; `docs/reviews/2026-11-13-teletext-qa-code-review-r1.md`). Kiro fixed findings 1-11 test-first (`...-r1-response.md`). Round 2 returned PASS with no open High and two Medium items open (`...-r2.md`).
